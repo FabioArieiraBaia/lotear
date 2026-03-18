@@ -121,19 +121,25 @@ export default function LoteamentoView() {
   const { id } = useParams<{ id: string }>();
   const [loteamento, setLoteamento] = useState<any>(null);
   const [lotes, setLotes] = useState<any[]>([]);
+  const [corretores, setCorretores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeLote, setActiveLote] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [parcelas, setParcelas] = useState<any[]>([]);
 
   useEffect(() => {
     if (!id) return;
 
     const fetchData = async () => {
       try {
-        const [loteamentoRes, lotesRes] = await Promise.all([
+        const token = localStorage.getItem('adminToken');
+        const [loteamentoRes, lotesRes, corretoresRes] = await Promise.all([
           fetch(`/api/loteamentos/${id}`),
-          fetch(`/api/loteamentos/${id}/lotes`)
+          fetch(`/api/loteamentos/${id}/lotes`),
+          fetch('/api/corretores', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
         ]);
 
         if (loteamentoRes.ok) {
@@ -144,6 +150,11 @@ export default function LoteamentoView() {
         if (lotesRes.ok) {
           const lotesData = await lotesRes.json();
           setLotes(lotesData);
+        }
+
+        if (corretoresRes.ok) {
+          const corretoresData = await corretoresRes.json();
+          setCorretores(corretoresData.filter((c: any) => c.active !== 0));
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -157,10 +168,11 @@ export default function LoteamentoView() {
 
   const handleSaveLote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeLote) return;
+    if (!activeLote || saving) return; // Prevenir múltiplos cliques
     setSaving(true);
     const token = localStorage.getItem('adminToken');
     try {
+      // Salvar dados do lote
       await fetch(`/api/lotes/${activeLote.id}`, {
         method: 'PUT',
         headers: { 
@@ -177,12 +189,38 @@ export default function LoteamentoView() {
           price: activeLote.price,
           buyerName: activeLote.buyerName,
           buyerCpf: activeLote.buyerCpf,
-          brokerName: activeLote.brokerName,
+          corretorId: activeLote.corretorId,
           paymentStatus: activeLote.paymentStatus,
           downPayment: activeLote.downPayment,
-          installments: activeLote.installments
+          installments: activeLote.installments,
+          saleDate: activeLote.saleDate || new Date().toISOString().split('T')[0]
         })
       });
+      
+      // Se está sendo vendido e tem parcelas, gerar as parcelas
+      if ((activeLote.status === 'Vendido' || activeLote.status === 'Reservado') && activeLote.installments > 0) {
+        await fetch(`/api/parcelas/generate/${activeLote.id}`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            downPayment: activeLote.downPayment || 0,
+            installments: activeLote.installments,
+            startDate: activeLote.saleDate || new Date().toISOString().split('T')[0],
+            dayOfMonth: 10
+          })
+        });
+      }
+      
+      // Se voltou para Disponível, limpar dados financeiros
+      if (activeLote.status === 'Disponível' || activeLote.status === 'Livre') {
+        await fetch(`/api/financeiro/lote/${activeLote.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
       
       setLotes(prev => prev.map(l => l.id === activeLote.id ? activeLote : l));
       setSaving(false);
@@ -383,74 +421,127 @@ export default function LoteamentoView() {
               </div>
 
               {(activeLote.status === 'Vendido' || activeLote.status === 'Reservado') && (
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
-                  <h4 className="font-medium text-gray-900 border-b border-gray-200 pb-2">Dados da Venda</h4>
+                <div className="p-4 bg-gray-800/50 rounded-lg border border-white/10 space-y-4">
+                  <h4 className="font-medium text-white border-b border-white/10 pb-2">Dados da Venda</h4>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Nome do Comprador</label>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Nome do Comprador</label>
                       <input
                         type="text"
                         value={activeLote.buyerName || ''}
                         onChange={(e) => setActiveLote({ ...activeLote, buyerName: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">CPF do Comprador</label>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">CPF do Comprador</label>
                       <input
                         type="text"
                         value={activeLote.buyerCpf || ''}
                         onChange={(e) => setActiveLote({ ...activeLote, buyerCpf: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Corretor Responsável</label>
-                    <input
-                      type="text"
-                      value={activeLote.brokerName || ''}
-                      onChange={(e) => setActiveLote({ ...activeLote, brokerName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                    />
+                    <label className="block text-xs font-medium text-gray-300 mb-1">Corretor Responsável</label>
+                    <select
+                      value={activeLote.corretorId || ''}
+                      onChange={(e) => setActiveLote({ ...activeLote, corretorId: e.target.value ? parseInt(e.target.value) : null })}
+                      className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
+                    >
+                      <option value="">Selecione um corretor</option>
+                      {corretores.map((corretor) => (
+                        <option key={corretor.id} value={corretor.id} className="bg-gray-800">
+                          {corretor.name} {corretor.creci ? `- CRECI: ${corretor.creci}` : ''} (Comissão: {(corretor.commissionRate * 100).toFixed(1)}%)
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Valor da Entrada (R$)</label>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Valor da Entrada (R$)</label>
                       <input
                         type="number"
                         value={activeLote.downPayment || ''}
                         onChange={(e) => setActiveLote({ ...activeLote, downPayment: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Nº de Parcelas</label>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Nº de Parcelas</label>
                       <input
                         type="number"
                         value={activeLote.installments || ''}
                         onChange={(e) => setActiveLote({ ...activeLote, installments: parseInt(e.target.value) || 1 })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Status do Pagamento</label>
-                    <select
-                      value={activeLote.paymentStatus || 'pendente'}
-                      onChange={(e) => setActiveLote({ ...activeLote, paymentStatus: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                    >
-                      <option value="pendente">Pendente</option>
-                      <option value="em_dia">Em Dia</option>
-                      <option value="atrasado">Atrasado</option>
-                      <option value="quitado">Quitado</option>
-                    </select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Data da Venda</label>
+                      <input
+                        type="date"
+                        value={activeLote.saleDate || new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setActiveLote({ ...activeLote, saleDate: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1">Status do Pagamento</label>
+                      <select
+                        value={activeLote.paymentStatus || 'pendente'}
+                        onChange={(e) => setActiveLote({ ...activeLote, paymentStatus: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
+                      >
+                        <option value="pendente" className="bg-gray-800">Pendente</option>
+                        <option value="em_dia" className="bg-gray-800">Em Dia</option>
+                        <option value="atrasado" className="bg-gray-800">Atrasado</option>
+                        <option value="quitado" className="bg-gray-800">Quitado</option>
+                      </select>
+                    </div>
                   </div>
+
+                  {/* Resumo do financiamento */}
+                  {activeLote.price > 0 && activeLote.installments > 0 && (
+                    <div className="mt-4 p-3 bg-emerald-900/20 border border-emerald-500/30 rounded-lg">
+                      <h5 className="text-sm font-medium text-emerald-400 mb-2">Resumo do Financiamento</h5>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-300">
+                        <span>Valor do Lote:</span>
+                        <span className="text-white font-mono">R$ {(activeLote.price || 0).toLocaleString('pt-BR')}</span>
+                        <span>Entrada:</span>
+                        <span className="text-white font-mono">R$ {(activeLote.downPayment || 0).toLocaleString('pt-BR')}</span>
+                        <span>Valor a Financiar:</span>
+                        <span className="text-white font-mono">R$ {((activeLote.price || 0) - (activeLote.downPayment || 0)).toLocaleString('pt-BR')}</span>
+                        <span>Parcelas ({activeLote.installments}x):</span>
+                        <span className="text-emerald-400 font-mono">R$ {(((activeLote.price || 0) - (activeLote.downPayment || 0)) / (activeLote.installments || 1)).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+                      </div>
+                      {activeLote.corretorId && (
+                        <div className="mt-2 pt-2 border-t border-white/10 text-xs">
+                          {(() => {
+                            const corretor = corretores.find(c => c.id === parseInt(activeLote.corretorId));
+                            if (corretor) {
+                              const comissao = (activeLote.price || 0) * (corretor.commissionRate || 0.05);
+                              return (
+                                <div className="grid grid-cols-2 gap-2 text-gray-300">
+                                  <span>Corretor:</span>
+                                  <span className="text-white">{corretor.name}</span>
+                                  <span>Comissão ({(corretor.commissionRate * 100).toFixed(1)}%):</span>
+                                  <span className="text-amber-400 font-mono">R$ {comissao.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

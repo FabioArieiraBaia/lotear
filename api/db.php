@@ -65,6 +65,9 @@ function getDatabase() {
             ['lotes', 'paymentStatus', 'TEXT DEFAULT "pendente"'],
             ['lotes', 'downPayment', 'REAL DEFAULT 0'],
             ['lotes', 'installments', 'INTEGER DEFAULT 1'],
+            ['lotes', 'corretorId', 'INTEGER REFERENCES corretores(id)'],
+            ['lotes', 'saleDate', 'DATE'],
+            ['lotes', 'totalPaid', 'REAL DEFAULT 0'],
         ];
         
         foreach ($columns as [$table, $column, $definition]) {
@@ -74,6 +77,68 @@ function getDatabase() {
                 // Column already exists, ignore
             }
         }
+        
+        // Create new tables for financial control
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS corretores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT,
+                phone TEXT,
+                cpf TEXT,
+                creci TEXT,
+                commissionRate REAL DEFAULT 0.05,
+                active INTEGER DEFAULT 1,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE TABLE IF NOT EXISTS parcelas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                loteId INTEGER NOT NULL,
+                installmentNumber INTEGER NOT NULL,
+                totalInstallments INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                dueDate DATE,
+                status TEXT DEFAULT 'pendente',
+                paidAt DATETIME,
+                paidAmount REAL DEFAULT 0,
+                notes TEXT,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(loteId) REFERENCES lotes(id)
+            );
+            
+            CREATE TABLE IF NOT EXISTS pagamentos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                loteId INTEGER,
+                parcelaId INTEGER,
+                corretorId INTEGER,
+                amount REAL NOT NULL,
+                type TEXT NOT NULL,
+                paymentMethod TEXT,
+                reference TEXT,
+                paidAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                notes TEXT,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(loteId) REFERENCES lotes(id),
+                FOREIGN KEY(parcelaId) REFERENCES parcelas(id),
+                FOREIGN KEY(corretorId) REFERENCES corretores(id)
+            );
+            
+            CREATE TABLE IF NOT EXISTS comissoes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                corretorId INTEGER NOT NULL,
+                loteId INTEGER NOT NULL,
+                saleAmount REAL NOT NULL,
+                commissionRate REAL NOT NULL,
+                commissionAmount REAL NOT NULL,
+                status TEXT DEFAULT 'pendente',
+                paidAt DATETIME,
+                notes TEXT,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(corretorId) REFERENCES corretores(id),
+                FOREIGN KEY(loteId) REFERENCES lotes(id)
+            );
+        ");
     }
     
     return $db;

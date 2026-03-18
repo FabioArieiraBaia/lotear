@@ -1,27 +1,65 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Search, Filter, Plus, Loader2, MapPin } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Users, Search, Filter, Loader2, MapPin, DollarSign, Calendar, User, Phone, Mail, CreditCard, ChevronDown, ChevronUp, MessageCircle, Copy, Check, Clock, TrendingUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+};
+
+const formatDate = (date: string) => {
+  if (!date) return '-';
+  return new Date(date).toLocaleDateString('pt-BR');
+};
 
 export default function Compradores() {
-  const [lotes, setLotes] = useState<any[]>([]);
+  const [compradores, setCompradores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
-    fetch('/api/lotes', {
+    fetch('/api/financeiro/compradores', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(data => {
-        setLotes(data);
+        setCompradores(data);
         setLoading(false);
       })
       .catch(err => {
-        console.error("Error fetching lotes:", err);
+        console.error("Error fetching compradores:", err);
         setLoading(false);
       });
   }, []);
+
+  const toggleCard = (cpf: string) => {
+    const newExpanded = new Set(expandedCards);
+    if (newExpanded.has(cpf)) {
+      newExpanded.delete(cpf);
+    } else {
+      newExpanded.add(cpf);
+    }
+    setExpandedCards(newExpanded);
+  };
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const openWhatsApp = (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const phoneWithCountryCode = cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone;
+    window.open(`https://wa.me/${phoneWithCountryCode}`, '_blank');
+  };
+
+  const filteredCompradores = compradores.filter(c => 
+    c.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.cpf.includes(searchTerm)
+  );
 
   if (loading) {
     return (
@@ -31,38 +69,95 @@ export default function Compradores() {
     );
   }
 
-  // Extract unique buyers from sold/reserved lots
-  const soldLots = lotes.filter(l => l.status === 'Vendido' || l.status === 'Reservado');
-  
-  // Group by buyer name/cpf
-  const buyersMap = new Map();
-  soldLots.forEach(lote => {
-    const buyerKey = lote.buyerCpf || lote.buyerName || lote.owner || 'Desconhecido';
-    if (!buyerKey || buyerKey === 'Desconhecido') return; // Skip empty
-    
-    if (!buyersMap.has(buyerKey)) {
-      buyersMap.set(buyerKey, {
-        name: lote.buyerName || lote.owner || 'Sem nome',
-        cpf: lote.buyerCpf || '-',
-        lotes: []
-      });
-    }
-    buyersMap.get(buyerKey).lotes.push(lote);
-  });
-
-  const buyers = Array.from(buyersMap.values());
-  const filteredBuyers = buyers.filter(b => 
-    b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    b.cpf.includes(searchTerm)
-  );
-
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white mb-2">Compradores</h2>
-          <p className="text-neutral-400">Gerencie a carteira de clientes e proprietários de lotes.</p>
+          <p className="text-neutral-400">Gerencie a carteira de clientes e acompanhe pagamentos.</p>
         </div>
+        <div className="text-right">
+          <p className="text-neutral-400 text-sm">Total de Compradores</p>
+          <p className="text-2xl font-bold text-white">{compradores.length}</p>
+        </div>
+      </div>
+
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white/5 border border-white/10 rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-neutral-400 text-xs">Total Vendido</p>
+              <p className="text-lg font-bold text-white">
+                {formatCurrency(compradores.reduce((acc, c) => acc + c.totalComprado, 0))}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white/5 border border-white/10 rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-neutral-400 text-xs">Total Entradas</p>
+              <p className="text-lg font-bold text-white">
+                {formatCurrency(compradores.reduce((acc, c) => acc + c.totalEntrada, 0))}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white/5 border border-white/10 rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-neutral-400 text-xs">Total Recebido</p>
+              <p className="text-lg font-bold text-white">
+                {formatCurrency(compradores.reduce((acc, c) => acc + c.totalPago, 0))}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white/5 border border-white/10 rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <p className="text-neutral-400 text-xs">A Receber</p>
+              <p className="text-lg font-bold text-white">
+                {formatCurrency(compradores.reduce((acc, c) => acc + c.totalPendente, 0))}
+              </p>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
@@ -84,9 +179,9 @@ export default function Compradores() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredBuyers.length === 0 ? (
-          <div className="col-span-full bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
+      <div className="space-y-4">
+        {filteredCompradores.length === 0 ? (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
             <Users className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
             <h3 className="text-xl font-medium text-white mb-2">Nenhum comprador encontrado</h3>
             <p className="text-neutral-400 max-w-md mx-auto">
@@ -94,46 +189,242 @@ export default function Compradores() {
             </p>
           </div>
         ) : (
-          filteredBuyers.map((buyer, idx) => (
+          filteredCompradores.map((comprador, idx) => (
             <motion.div 
-              key={idx}
+              key={comprador.cpf}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-colors"
+              className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-emerald-500/30 transition-colors"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <span className="text-emerald-400 font-bold text-lg">
-                    {buyer.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <span className="bg-white/10 text-neutral-300 text-xs px-2 py-1 rounded-md font-mono">
-                  CPF: {buyer.cpf}
-                </span>
-              </div>
-              
-              <h3 className="text-xl font-bold text-white mb-4 truncate">{buyer.name}</h3>
-              
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Lotes Adquiridos</h4>
-                {buyer.lotes.map((lote: any) => (
-                  <div key={lote.id} className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/5">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-emerald-500" />
-                      <div>
-                        <p className="text-sm font-medium text-white">{lote.name}</p>
-                        <p className="text-xs text-neutral-500">{lote.loteamentoName}</p>
+              {/* Header do Card */}
+              <div 
+                className="p-6 cursor-pointer"
+                onClick={() => toggleCard(comprador.cpf)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
+                      <span className="text-white font-bold text-xl">
+                        {comprador.nome.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">{comprador.nome}</h3>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-neutral-400 text-sm font-mono">CPF: {comprador.cpf}</span>
+                        <span className="bg-white/10 text-neutral-300 text-xs px-2 py-0.5 rounded">
+                          {comprador.lotes.length} lote{comprador.lotes.length > 1 ? 's' : ''}
+                        </span>
                       </div>
                     </div>
-                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
-                      lote.status === 'Vendido' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                    }`}>
-                      {lote.status}
-                    </span>
                   </div>
-                ))}
+                  
+                  <div className="flex items-center gap-6">
+                    {/* Resumo Financeiro Rápido */}
+                    <div className="hidden md:flex items-center gap-6 text-sm">
+                      <div className="text-center">
+                        <p className="text-neutral-500 text-xs">Total</p>
+                        <p className="text-white font-semibold">{formatCurrency(comprador.totalComprado)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-neutral-500 text-xs">Entrada</p>
+                        <p className="text-emerald-400 font-semibold">{formatCurrency(comprador.totalEntrada)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-neutral-500 text-xs">Pago</p>
+                        <p className="text-blue-400 font-semibold">{formatCurrency(comprador.totalPago)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-neutral-500 text-xs">Pendente</p>
+                        <p className="text-amber-400 font-semibold">{formatCurrency(comprador.totalPendente)}</p>
+                      </div>
+                    </div>
+                    
+                    {expandedCards.has(comprador.cpf) ? (
+                      <ChevronUp className="w-5 h-5 text-neutral-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-neutral-400" />
+                    )}
+                  </div>
+                </div>
               </div>
+              
+              {/* Conteúdo Expandido */}
+              <AnimatePresence>
+                {expandedCards.has(comprador.cpf) && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-6 pb-6 border-t border-white/10 pt-4">
+                      {comprador.lotes.map((lote: any, loteIdx: number) => (
+                        <div 
+                          key={lote.loteId}
+                          className={`bg-black/40 rounded-xl p-5 border border-white/5 ${loteIdx > 0 ? 'mt-4' : ''}`}
+                        >
+                          {/* Header do Lote */}
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                                <MapPin className="w-5 h-5 text-emerald-400" />
+                              </div>
+                              <div>
+                                <h4 className="text-lg font-semibold text-white">{lote.loteName}</h4>
+                                <p className="text-neutral-400 text-sm">{lote.loteamentoName}</p>
+                              </div>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              lote.statusPagamento === 'quitado' ? 'bg-blue-500/20 text-blue-400' :
+                              lote.statusPagamento === 'em_dia' ? 'bg-emerald-500/20 text-emerald-400' :
+                              lote.statusPagamento === 'atrasado' ? 'bg-red-500/20 text-red-400' :
+                              'bg-amber-500/20 text-amber-400'
+                            }`}>
+                              {lote.statusPagamento === 'quitado' ? 'Quitado' :
+                               lote.statusPagamento === 'em_dia' ? 'Em Dia' :
+                               lote.statusPagamento === 'atrasado' ? 'Atrasado' : 'Pendente'}
+                            </span>
+                          </div>
+                          
+                          {/* Informações em Grid */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            <div className="bg-white/5 rounded-lg p-3">
+                              <p className="text-neutral-500 text-xs mb-1">Valor Total</p>
+                              <p className="text-white font-semibold">{formatCurrency(lote.valorTotal)}</p>
+                            </div>
+                            <div className="bg-white/5 rounded-lg p-3">
+                              <p className="text-neutral-500 text-xs mb-1">Entrada</p>
+                              <p className="text-emerald-400 font-semibold">{formatCurrency(lote.entrada)}</p>
+                            </div>
+                            <div className="bg-white/5 rounded-lg p-3">
+                              <p className="text-neutral-500 text-xs mb-1">Parcelas</p>
+                              <p className="text-white font-semibold">
+                                {lote.totalParcelas}x de {formatCurrency(lote.valorParcela)}
+                              </p>
+                            </div>
+                            <div className="bg-white/5 rounded-lg p-3">
+                              <p className="text-neutral-500 text-xs mb-1">Data da Venda</p>
+                              <p className="text-white font-semibold">{formatDate(lote.dataVenda)}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Progresso de Pagamento */}
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between text-sm mb-2">
+                              <span className="text-neutral-400">Progresso de Pagamento</span>
+                              <span className="text-white">
+                                {lote.parcelasPagas}/{lote.parcelas.length} parcelas pagas
+                              </span>
+                            </div>
+                            <div className="w-full bg-white/10 rounded-full h-2">
+                              <div 
+                                className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${lote.parcelas.length > 0 ? (lote.parcelasPagas / lote.parcelas.length) * 100 : 0}%` }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-xs mt-2">
+                              <span className="text-emerald-400">Pago: {formatCurrency(lote.totalPago)}</span>
+                              <span className="text-amber-400">Pendente: {formatCurrency(lote.valorPendente)}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Corretor Responsável */}
+                          {lote.corretor && (
+                            <div className="bg-white/5 rounded-lg p-4 mb-4">
+                              <p className="text-neutral-500 text-xs mb-2 flex items-center gap-2">
+                                <User className="w-3 h-3" /> Corretor Responsável
+                              </p>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-white font-medium">{lote.corretor.nome}</p>
+                                  <p className="text-neutral-400 text-sm">Taxa: {(lote.corretor.taxa * 100).toFixed(1)}%</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {lote.corretor.phone && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openWhatsApp(lote.corretor.phone);
+                                      }}
+                                      className="p-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition-colors group"
+                                      title="Abrir WhatsApp"
+                                    >
+                                      <MessageCircle className="w-4 h-4 text-green-400" />
+                                    </button>
+                                  )}
+                                  {lote.corretor.email && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        copyToClipboard(lote.corretor.email, `email-${lote.loteId}`);
+                                      }}
+                                      className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                                      title="Copiar Email"
+                                    >
+                                      {copiedField === `email-${lote.loteId}` ? (
+                                        <Check className="w-4 h-4 text-emerald-400" />
+                                      ) : (
+                                        <Copy className="w-4 h-4 text-neutral-400" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Lista de Parcelas */}
+                          {lote.parcelas.length > 0 && (
+                            <div>
+                              <p className="text-neutral-500 text-xs mb-2 flex items-center gap-2">
+                                <CreditCard className="w-3 h-3" /> Detalhamento das Parcelas
+                              </p>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="text-neutral-400 text-xs border-b border-white/10">
+                                      <th className="py-2 text-left font-medium">Nº</th>
+                                      <th className="py-2 text-left font-medium">Valor</th>
+                                      <th className="py-2 text-left font-medium">Vencimento</th>
+                                      <th className="py-2 text-left font-medium">Status</th>
+                                      <th className="py-2 text-left font-medium">Pago</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-white/5">
+                                    {lote.parcelas.map((parcela: any) => (
+                                      <tr key={parcela.id} className="text-neutral-300">
+                                        <td className="py-2 text-white font-medium">{parcela.installmentNumber}</td>
+                                        <td className="py-2">{formatCurrency(parcela.amount)}</td>
+                                        <td className="py-2">{formatDate(parcela.dueDate)}</td>
+                                        <td className="py-2">
+                                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                            parcela.status === 'pago' ? 'bg-emerald-500/20 text-emerald-400' :
+                                            parcela.status === 'atrasado' ? 'bg-red-500/20 text-red-400' :
+                                            'bg-amber-500/20 text-amber-400'
+                                          }`}>
+                                            {parcela.status === 'pago' ? 'Pago' :
+                                             parcela.status === 'atrasado' ? 'Atrasado' : 'Pendente'}
+                                          </span>
+                                        </td>
+                                        <td className="py-2">
+                                          {parcela.paidAmount ? formatCurrency(parcela.paidAmount) : '-'}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           ))
         )}

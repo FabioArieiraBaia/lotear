@@ -70,7 +70,7 @@ function handleUpdateLote($id) {
     $allowedFields = [
         'name', 'area', 'status', 'owner', 'photoUrl', 'notes',
         'price', 'buyerName', 'buyerCpf', 'brokerName', 'paymentStatus',
-        'downPayment', 'installments'
+        'downPayment', 'installments', 'corretorId', 'saleDate'
     ];
     
     foreach ($allowedFields as $field) {

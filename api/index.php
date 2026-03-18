@@ -28,6 +28,8 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/loteamentos.php';
 require_once __DIR__ . '/lotes.php';
 require_once __DIR__ . '/leads.php';
+require_once __DIR__ . '/corretores.php';
+require_once __DIR__ . '/financeiro.php';
 
 // Parse the request path
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -70,6 +72,11 @@ try {
         handleGetLoteamentoLotes((int)$matches[1]);
     }
     
+    // DELETE /api/loteamentos/:id
+    elseif (preg_match('#^/api/loteamentos/(\d+)$#', $path, $matches) && $method === 'DELETE') {
+        handleDeleteLoteamento((int)$matches[1]);
+    }
+    
     // GET /api/lotes
     elseif ($path === '/api/lotes' && $method === 'GET') {
         handleGetAllLotes();
@@ -103,6 +110,90 @@ try {
     // PUT /api/leads/:id
     elseif (preg_match('#^/api/leads/(\d+)$#', $path, $matches) && $method === 'PUT') {
         handleUpdateLead((int)$matches[1]);
+    }
+    
+    // ==================== CORRETORES ====================
+    
+    // GET /api/corretores
+    elseif ($path === '/api/corretores' && $method === 'GET') {
+        handleGetAllCorretores();
+    }
+    
+    // POST /api/corretores
+    elseif ($path === '/api/corretores' && $method === 'POST') {
+        handleCreateCorretor();
+    }
+    
+    // GET /api/corretores/:id
+    elseif (preg_match('#^/api/corretores/(\d+)$#', $path, $matches) && $method === 'GET') {
+        handleGetCorretor((int)$matches[1]);
+    }
+    
+    // PUT /api/corretores/:id
+    elseif (preg_match('#^/api/corretores/(\d+)$#', $path, $matches) && $method === 'PUT') {
+        handleUpdateCorretor((int)$matches[1]);
+    }
+    
+    // DELETE /api/corretores/:id
+    elseif (preg_match('#^/api/corretores/(\d+)$#', $path, $matches) && $method === 'DELETE') {
+        handleDeleteCorretor((int)$matches[1]);
+    }
+    
+    // ==================== FINANCEIRO ====================
+    
+    // GET /api/financeiro/resumo
+    elseif ($path === '/api/financeiro/resumo' && $method === 'GET') {
+        handleGetResumoFinanceiro();
+    }
+    
+    // GET /api/financeiro/vendas
+    elseif ($path === '/api/financeiro/vendas' && $method === 'GET') {
+        handleGetVendas();
+    }
+    
+    // GET /api/financeiro/compradores
+    elseif ($path === '/api/financeiro/compradores' && $method === 'GET') {
+        handleGetCompradores();
+    }
+    
+    // GET /api/parcelas
+    elseif ($path === '/api/parcelas' && $method === 'GET') {
+        handleGetAllParcelas();
+    }
+    
+    // GET /api/parcelas/lote/:id
+    elseif (preg_match('#^/api/parcelas/lote/(\d+)$#', $path, $matches) && $method === 'GET') {
+        handleGetParcelasByLote((int)$matches[1]);
+    }
+    
+    // POST /api/parcelas/generate/:loteId
+    elseif (preg_match('#^/api/parcelas/generate/(\d+)$#', $path, $matches) && $method === 'POST') {
+        handleGenerateParcelas((int)$matches[1]);
+    }
+    
+    // GET /api/pagamentos
+    elseif ($path === '/api/pagamentos' && $method === 'GET') {
+        handleGetPagamentos();
+    }
+    
+    // POST /api/pagamentos
+    elseif ($path === '/api/pagamentos' && $method === 'POST') {
+        handleRegistrarPagamento();
+    }
+    
+    // GET /api/comissoes
+    elseif ($path === '/api/comissoes' && $method === 'GET') {
+        handleGetComissoes();
+    }
+    
+    // POST /api/comissoes/:id/pagar
+    elseif (preg_match('#^/api/comissoes/(\d+)/pagar$#', $path, $matches) && $method === 'POST') {
+        handlePagarComissao((int)$matches[1]);
+    }
+    
+    // DELETE /api/financeiro/lote/:id (limpar dados financeiros de um lote)
+    elseif (preg_match('#^/api/financeiro/lote/(\d+)$#', $path, $matches) && $method === 'DELETE') {
+        handleLimparDadosFinanceiros((int)$matches[1]);
     }
     
     // 404 - Route not found

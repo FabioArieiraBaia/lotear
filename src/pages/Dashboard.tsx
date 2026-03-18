@@ -1,14 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Map, Calendar, Loader2, Building2, CheckCircle, Clock, TrendingUp, Users } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Plus, Map, Calendar, Loader2, Building2, CheckCircle, Clock, TrendingUp, Users, Trash2, X, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard() {
   const [loteamentos, setLoteamentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({ totalLotes: 0, disponiveis: 0, vendidos: 0, reservados: 0, receita: 0 });
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; loteamento: any | null }>({ open: false, loteamento: null });
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
+
+  const handleDeleteLoteamento = async () => {
+    if (!deleteModal.loteamento) return;
+    
+    setDeleting(true);
+    const token = localStorage.getItem('adminToken');
+    
+    try {
+      const response = await fetch(`/api/loteamentos/${deleteModal.loteamento.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao deletar loteamento');
+      }
+      
+      // Remove from list
+      setLoteamentos(prev => prev.filter(l => l.id !== deleteModal.loteamento.id));
+      setDeleteModal({ open: false, loteamento: null });
+    } catch (err) {
+      console.error('Error deleting loteamento:', err);
+      alert('Erro ao deletar loteamento. Tente novamente.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -203,17 +234,18 @@ export default function Dashboard() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
+              className="relative group/card"
             >
               <Link
                 to={`/admin/loteamento/${loteamento.id}`}
-                className="group block bg-white/5 rounded-2xl border border-white/10 overflow-hidden hover:bg-white/10 transition-all hover:border-emerald-500/30 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]"
+                className="block bg-white/5 rounded-2xl border border-white/10 overflow-hidden hover:bg-white/10 transition-all hover:border-emerald-500/30 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]"
               >
                 <div className="aspect-video w-full bg-neutral-900 relative overflow-hidden">
                   {loteamento.imageUrl ? (
                     <img
                       src={loteamento.imageUrl}
                       alt={loteamento.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100 mix-blend-screen"
+                      className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500 opacity-80 group-hover/card:opacity-100 mix-blend-screen"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-600">
@@ -223,17 +255,104 @@ export default function Dashboard() {
                   <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 to-transparent opacity-60" />
                 </div>
                 <div className="p-5 relative">
-                  <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-emerald-400 transition-colors">{loteamento.name}</h3>
+                  <h3 className="text-xl font-semibold text-white mb-2 group-hover/card:text-emerald-400 transition-colors">{loteamento.name}</h3>
                   <div className="flex items-center text-sm text-neutral-400 gap-2 font-mono">
                     <Calendar className="w-4 h-4" />
                     {new Date(loteamento.createdAt).toLocaleDateString()}
                   </div>
                 </div>
               </Link>
+              
+              {/* Delete button */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDeleteModal({ open: true, loteamento });
+                }}
+                className="absolute top-3 right-3 p-2 bg-red-500/80 hover:bg-red-500 text-white rounded-lg opacity-0 group-hover/card:opacity-100 transition-all shadow-lg z-10"
+                title="Deletar loteamento"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </motion.div>
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteModal.open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => !deleting && setDeleteModal({ open: false, loteamento: null })}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-neutral-900 border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Deletar Loteamento</h3>
+                  <p className="text-neutral-400 text-sm">Esta ação não pode ser desfeita</p>
+                </div>
+              </div>
+              
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
+                <p className="text-red-300 text-sm">
+                  <strong>Atenção:</strong> Você perderá todos os dados deste loteamento:
+                </p>
+                <ul className="text-red-300/80 text-sm mt-2 ml-4 list-disc space-y-1">
+                  <li>Todos os lotes cadastrados</li>
+                  <li>Parcelas e pagamentos registrados</li>
+                  <li>Comissões de corretores</li>
+                  <li>Histórico financeiro</li>
+                </ul>
+              </div>
+              
+              <p className="text-white mb-6">
+                Tem certeza que deseja deletar <strong className="text-red-400">{deleteModal.loteamento?.name}</strong>?
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteModal({ open: false, loteamento: null })}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteLoteamento}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deletando...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Deletar
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

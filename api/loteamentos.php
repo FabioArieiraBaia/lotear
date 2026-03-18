@@ -71,3 +71,57 @@ function handleGetLoteamentoLotes($id) {
     
     jsonResponse($lotes);
 }
+
+function handleDeleteLoteamento($id) {
+    requireAuth();
+    $db = getDatabase();
+    
+    // Buscar imagem para deletar
+    $stmt = $db->prepare('SELECT imageUrl FROM loteamentos WHERE id = ?');
+    $stmt->execute([$id]);
+    $loteamento = $stmt->fetch();
+    
+    if (!$loteamento) {
+        jsonResponse(['error' => 'Loteamento não encontrado'], 404);
+        return;
+    }
+    
+    // Buscar IDs dos lotes para deletar registros relacionados
+    $stmt = $db->prepare('SELECT id FROM lotes WHERE loteamentoId = ?');
+    $stmt->execute([$id]);
+    $loteIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    if (!empty($loteIds)) {
+        $placeholders = implode(',', array_fill(0, count($loteIds), '?'));
+        
+        // Deletar pagamentos
+        $stmt = $db->prepare("DELETE FROM pagamentos WHERE loteId IN ($placeholders)");
+        $stmt->execute($loteIds);
+        
+        // Deletar parcelas
+        $stmt = $db->prepare("DELETE FROM parcelas WHERE loteId IN ($placeholders)");
+        $stmt->execute($loteIds);
+        
+        // Deletar comissões
+        $stmt = $db->prepare("DELETE FROM comissoes WHERE loteId IN ($placeholders)");
+        $stmt->execute($loteIds);
+    }
+    
+    // Deletar lotes
+    $stmt = $db->prepare('DELETE FROM lotes WHERE loteamentoId = ?');
+    $stmt->execute([$id]);
+    
+    // Deletar loteamento
+    $stmt = $db->prepare('DELETE FROM loteamentos WHERE id = ?');
+    $stmt->execute([$id]);
+    
+    // Deletar arquivo de imagem
+    if (!empty($loteamento['imageUrl'])) {
+        $imagePath = __DIR__ . '/..' . $loteamento['imageUrl'];
+        if (file_exists($imagePath)) {
+            unlink($imagePath);
+        }
+    }
+    
+    jsonResponse(['success' => true, 'message' => 'Loteamento deletado com sucesso']);
+}
