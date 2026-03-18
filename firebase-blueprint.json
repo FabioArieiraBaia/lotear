@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "Loteamento": {
+      "title": "Loteamento",
+      "description": "Uma planta de loteamento carregada no sistema.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Nome do loteamento"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Imagem da planta em base64"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data de criação"
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID do usuário dono do loteamento"
+        }
+      },
+      "required": ["name", "imageUrl", "createdAt", "userId"]
+    },
+    "Lote": {
+      "title": "Lote",
+      "description": "Um lote individual dentro de um loteamento.",
+      "type": "object",
+      "properties": {
+        "loteamentoId": {
+          "type": "string",
+          "description": "ID do loteamento pai"
+        },
+        "name": {
+          "type": "string",
+          "description": "Nome ou número do lote"
+        },
+        "polygon": {
+          "type": "string",
+          "description": "Polígono do lote serializado em JSON (array de [y, x])"
+        },
+        "area": {
+          "type": "string",
+          "description": "Área estimada do lote"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Disponível", "Vendido", "Reservado"],
+          "description": "Status de venda do lote"
+        },
+        "owner": {
+          "type": "string",
+          "description": "Nome do proprietário"
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "Foto do lote em base64"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Anotações adicionais"
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID do usuário dono do lote"
+        }
+      },
+      "required": ["loteamentoId", "name", "polygon", "status", "userId"]
+    }
+  },
+  "firestore": {
+    "loteamentos/{loteamentoId}": {
+      "schema": {
+        "$ref": "#/entities/Loteamento"
+      },
+      "description": "Coleção de loteamentos"
+    },
+    "lotes/{loteId}": {
+      "schema": {
+        "$ref": "#/entities/Lote"
+      },
+      "description": "Coleção de lotes individuais"
+    }
+  }
+}

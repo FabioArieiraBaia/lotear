@@ -1,0 +1,28 @@
+RewriteEngine On
+
+# =============================================
+# Production: deployed at domain root (cPanel)
+# =============================================
+# For local XAMPP testing at /lotear/, add:
+#   RewriteBase /lotear/
+# and adjust the conditions below accordingly.
+
+# --- API Routes ---
+RewriteRule ^api/(.*)$ api/index.php [QSA,L]
+
+# --- Serve uploads directly ---
+RewriteRule ^uploads/ - [L]
+
+# --- Static assets from dist/ ---
+# Serve dist/assets/ (JS, CSS, images)
+RewriteRule ^assets/(.*)$ dist/assets/$1 [L]
+
+# If a file exists in dist/, serve it directly
+RewriteCond %{DOCUMENT_ROOT}/dist/%{REQUEST_URI} -f
+RewriteRule ^(.+)$ dist/$1 [L]
+
+# --- SPA Fallback ---
+# All other requests go to React SPA index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ dist/index.html [L]

@@ -1,0 +1,5 @@
+{
+  "name": "Planta de Loteamento Interativa",
+  "description": "Visualizador interativo de planta de loteamento com Leaflet.js, permitindo clicar nos lotes para ver detalhes e adicionar fotos.",
+  "requestFramePermissions": []
+}

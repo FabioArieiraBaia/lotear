@@ -1,0 +1,115 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: loteamentos
+// Document ID: auto-generated
+// Fields:
+//   - name: string (required)
+//   - imageUrl: string (required)
+//   - createdAt: timestamp (required)
+//   - userId: string (required, immutable)
+//
+// Collection: lotes
+// Document ID: auto-generated
+// Fields:
+//   - loteamentoId: string (required, immutable)
+//   - name: string (required)
+//   - polygon: string (required)
+//   - area: string (optional)
+//   - status: string (required, enum: Disponível, Vendido, Reservado)
+//   - owner: string (optional)
+//   - photoUrl: string (optional)
+//   - notes: string (optional)
+//   - userId: string (required, immutable)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    function uidUnchanged() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid;
+    }
+    
+    function uidNotModified() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+    
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    
+    function isValidLoteamento() {
+      return hasRequiredFields(['name', 'imageUrl', 'createdAt', 'userId']) &&
+             validStringLength('name', 1, 100) &&
+             validStringLength('imageUrl', 1, 1048576) && // 1MB max for base64
+             request.resource.data.createdAt is timestamp &&
+             validStringLength('userId', 1, 128);
+    }
+    
+    function isValidLote() {
+      return hasRequiredFields(['loteamentoId', 'name', 'polygon', 'status', 'userId']) &&
+             validStringLength('loteamentoId', 1, 128) &&
+             validStringLength('name', 1, 100) &&
+             validStringLength('polygon', 1, 1048576) && // JSON string
+             request.resource.data.status in ['Disponível', 'Vendido', 'Reservado'] &&
+             validStringLength('userId', 1, 128) &&
+             isValidOptionalString('area', 0, 100) &&
+             isValidOptionalString('owner', 0, 100) &&
+             isValidOptionalString('photoUrl', 0, 1048576) &&
+             isValidOptionalString('notes', 0, 5000);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    match /loteamentos/{loteamentoId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidLoteamento() && uidUnchanged();
+      allow update: if isDocOwner() && isValidLoteamento() && uidNotModified() && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isDocOwner();
+    }
+    
+    match /lotes/{loteId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidLote() && uidUnchanged();
+      allow update: if isDocOwner() && isValidLote() && uidNotModified() && request.resource.data.loteamentoId == resource.data.loteamentoId;
+      allow delete: if isDocOwner();
+    }
+  }
+}
