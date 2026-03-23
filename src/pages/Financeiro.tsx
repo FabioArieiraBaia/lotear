@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { resolveUrl } from '../utils/url';
 import { 
   DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, Loader2, FileText, 
   Calendar, CreditCard, Users, AlertTriangle, CheckCircle, Clock, ChevronDown, 
@@ -60,6 +61,7 @@ interface ResumoFinanceiro {
 export default function Financeiro() {
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  const [vendas, setVendas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'vendas' | 'parcelas' | 'pagamentos'>('vendas');
   const [selectedParcela, setSelectedParcela] = useState<Parcela | null>(null);
@@ -67,6 +69,10 @@ export default function Financeiro() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('pix');
   const [paymentNotes, setPaymentNotes] = useState('');
+  const [juros, setJuros] = useState('');
+  const [multa, setMulta] = useState('');
+  const [desconto, setDesconto] = useState('');
+  const [forceQuitado, setForceQuitado] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
@@ -77,7 +83,7 @@ export default function Financeiro() {
     const token = localStorage.getItem('adminToken');
     try {
       // Buscar resumo financeiro
-      const resResumo = await fetch('/api/financeiro/resumo', {
+      const resResumo = await fetch(import.meta.env.BASE_URL + 'api/financeiro/resumo', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (resResumo.ok) {
@@ -86,12 +92,21 @@ export default function Financeiro() {
       }
 
       // Buscar todas as parcelas
-      const resParcelas = await fetch('/api/parcelas', {
+      const resParcelas = await fetch(import.meta.env.BASE_URL + 'api/parcelas', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (resParcelas.ok) {
         const dataParcelas = await resParcelas.json();
         setParcelas(dataParcelas);
+      }
+
+      // Buscar vendas
+      const resVendas = await fetch(import.meta.env.BASE_URL + 'api/financeiro/vendas', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (resVendas.ok) {
+        const dataVendas = await resVendas.json();
+        setVendas(dataVendas);
       }
 
       setLoading(false);
@@ -108,7 +123,7 @@ export default function Financeiro() {
     const token = localStorage.getItem('adminToken');
     
     try {
-      const res = await fetch('/api/financeiro/pagamentos', {
+      const res = await fetch(import.meta.env.BASE_URL + 'api/financeiro/pagamentos', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -118,6 +133,10 @@ export default function Financeiro() {
           parcelaId: selectedParcela.id,
           loteId: selectedParcela.loteId,
           amount: parseFloat(paymentAmount) || selectedParcela.amount,
+          juros: parseFloat(juros) || 0,
+          multa: parseFloat(multa) || 0,
+          desconto: parseFloat(desconto) || 0,
+          forceQuitado,
           paymentMethod: paymentMethod,
           notes: paymentNotes
         })
@@ -128,6 +147,10 @@ export default function Financeiro() {
         setSelectedParcela(null);
         setPaymentAmount('');
         setPaymentNotes('');
+        setJuros('');
+        setMulta('');
+        setDesconto('');
+        setForceQuitado(false);
         fetchData(); // Recarregar dados
       }
     } catch (err) {
@@ -319,7 +342,7 @@ export default function Financeiro() {
                 <h3 className="text-lg font-medium text-white">Vendas Realizadas</h3>
                 <div className="flex items-center gap-2 text-sm text-neutral-400">
                   <Building className="w-4 h-4" />
-                  {resumo?.proximosVencimentos?.length || 0} parcelas no sistema
+                  {vendas.length} vendas cadastradas
                 </div>
               </div>
               
@@ -337,40 +360,32 @@ export default function Financeiro() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {(!resumo?.proximosVencimentos || resumo.proximosVencimentos.length === 0) ? (
+                    {vendas.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="p-8 text-center text-neutral-500">
                           Nenhuma venda registrada ainda.
                         </td>
                       </tr>
                     ) : (
-                      // Agrupar parcelas por lote para mostrar vendas únicas
-                      Array.from(new Set(resumo.proximosVencimentos.map(p => p.loteId))).map(loteId => {
-                        const parcelasDoLote = resumo.proximosVencimentos.filter(p => p.loteId === loteId);
-                        const primeiraParcela = parcelasDoLote[0];
-                        const totalParcelas = primeiraParcela.totalInstallments;
-                        const valorTotal = parcelasDoLote.reduce((acc, p) => acc + p.amount, 0) + (resumo?.totalRecebido || 0);
-                        
-                        // Calcular entrada baseado no VGV e parcelas
-                        const entrada = resumo?.totalRecebido || 0;
-                        const valorVenda = entrada + valorTotal;
-                        
-                        return (
-                          <tr key={loteId} className="hover:bg-white/5 transition-colors text-sm text-neutral-300">
-                            <td className="p-4 font-medium text-white">{primeiraParcela.loteName}</td>
-                            <td className="p-4">{primeiraParcela.loteamentoName}</td>
-                            <td className="p-4 font-medium text-emerald-400">{primeiraParcela.buyerName || '-'}</td>
-                            <td className="p-4 text-white font-mono">{formatCurrency(valorVenda)}</td>
-                            <td className="p-4 text-emerald-400 font-mono">{formatCurrency(entrada)}</td>
-                            <td className="p-4">{totalParcelas}x de {formatCurrency(primeiraParcela.amount)}</td>
-                            <td className="p-4">
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
-                                Pendente
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })
+                      vendas.map(venda => (
+                        <tr key={venda.id} className="hover:bg-white/5 transition-colors text-sm text-neutral-300">
+                          <td className="p-4 font-medium text-white">{venda.loteName}</td>
+                          <td className="p-4">{venda.loteamentoName}</td>
+                          <td className="p-4 font-medium text-emerald-400">{venda.compradorNome || '-'}</td>
+                          <td className="p-4 text-white font-mono">{formatCurrency(venda.valorTotal)}</td>
+                          <td className="p-4 text-emerald-400 font-mono">{formatCurrency(venda.entrada)}</td>
+                          <td className="p-4">{venda.totalParcelas}x de {formatCurrency(venda.valorParcela)}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              venda.statusPagamento === 'quitado' 
+                                ? 'bg-emerald-500/20 text-emerald-400' 
+                                : 'bg-amber-500/20 text-amber-400'
+                            }`}>
+                              {venda.statusPagamento === 'quitado' ? 'Quitado' : 'Pendente'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
@@ -399,91 +414,61 @@ export default function Financeiro() {
                 </div>
               </div>
               
-              {/* Kanban de Parcelas */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-                {/* Atrasadas */}
-                <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-medium text-red-400 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      Atrasadas
-                    </h4>
-                    <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full">
-                      {parcelasAtrasadas.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    {parcelasAtrasadas.map(parcela => (
-                      <ParcelaCard 
-                        key={parcela.id} 
-                        parcela={parcela} 
-                        onPay={() => {
-                          setSelectedParcela(parcela);
-                          setPaymentAmount(parcela.amount.toString());
-                          setShowPaymentModal(true);
-                        }}
-                        isLate
-                      />
-                    ))}
-                    {parcelasAtrasadas.length === 0 && (
-                      <p className="text-neutral-500 text-sm text-center py-4">Nenhuma parcela atrasada</p>
+              {/* Tabela de Parcelas Pendentes e Atrasadas */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-white/5 text-neutral-400 text-sm">
+                      <th className="p-4 font-medium">Parcela</th>
+                      <th className="p-4 font-medium">Lote</th>
+                      <th className="p-4 font-medium">Comprador</th>
+                      <th className="p-4 font-medium">Vencimento</th>
+                      <th className="p-4 font-medium">Valor</th>
+                      <th className="p-4 font-medium">Status</th>
+                      <th className="p-4 font-medium text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {[...parcelasAtrasadas, ...parcelasEmDia].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map(parcela => {
+                      const isAtrasado = parcela.status === 'atrasado' || new Date(parcela.dueDate) < new Date();
+                      return (
+                        <tr key={parcela.id} className="hover:bg-white/5 transition-colors text-sm text-neutral-300">
+                          <td className="p-4 font-medium text-white">{parcela.installmentNumber}/{parcela.totalInstallments}</td>
+                          <td className="p-4">{parcela.loteName}</td>
+                          <td className="p-4 text-emerald-400 font-medium">{parcela.buyerName}</td>
+                          <td className="p-4">{formatDate(parcela.dueDate)}</td>
+                          <td className="p-4 font-mono text-emerald-400">{formatCurrency(parcela.amount)}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              isAtrasado ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'
+                            }`}>
+                              {isAtrasado ? 'Atrasada' : 'Pendente'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <button
+                              onClick={() => {
+                                setSelectedParcela(parcela);
+                                setPaymentAmount(parcela.amount.toString());
+                                setShowPaymentModal(true);
+                              }}
+                              className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg transition-colors text-xs font-medium"
+                            >
+                              Baixar Parcela
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {[...parcelasAtrasadas, ...parcelasEmDia].length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-neutral-500">
+                          Nenhuma parcela pendente ou atrasada.
+                        </td>
+                      </tr>
                     )}
-                  </div>
-                </div>
-
-                {/* Pendentes */}
-                <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-medium text-amber-400 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Pendentes
-                    </h4>
-                    <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
-                      {parcelasEmDia.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    {parcelasEmDia.map(parcela => (
-                      <ParcelaCard 
-                        key={parcela.id} 
-                        parcela={parcela} 
-                        onPay={() => {
-                          setSelectedParcela(parcela);
-                          setPaymentAmount(parcela.amount.toString());
-                          setShowPaymentModal(true);
-                        }}
-                      />
-                    ))}
-                    {parcelasEmDia.length === 0 && (
-                      <p className="text-neutral-500 text-sm text-center py-4">Nenhuma parcela pendente</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pagas */}
-                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-medium text-emerald-400 flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4" />
-                      Pagas
-                    </h4>
-                    <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">
-                      {parcelasPagas.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    {parcelasPagas.map(parcela => (
-                      <ParcelaCard 
-                        key={parcela.id} 
-                        parcela={parcela} 
-                        paid
-                      />
-                    ))}
-                    {parcelasPagas.length === 0 && (
-                      <p className="text-neutral-500 text-sm text-center py-4">Nenhuma parcela paga</p>
-                    )}
-                  </div>
-                </div>
+                  </tbody>
+                </table>
               </div>
             </motion.div>
           )}
@@ -592,16 +577,78 @@ export default function Financeiro() {
                   </p>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-2">Acréscimos (Juros R$)</label>
+                    <input
+                      type="number"
+                      value={juros}
+                      onChange={(e) => setJuros(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500/50"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-2">Multa (R$)</label>
+                    <input
+                      type="number"
+                      value={multa}
+                      onChange={(e) => setMulta(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500/50"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-2">Descontos (- R$)</label>
+                    <input
+                      type="number"
+                      value={desconto}
+                      onChange={(e) => setDesconto(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500/50"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-2">Total Calculado</label>
+                    <div className="w-full bg-black/20 border border-white/5 rounded-lg px-4 py-2 text-emerald-400 font-mono flex items-center h-[42px]">
+                      {formatCurrency(
+                        (selectedParcela.amount || 0) + 
+                        (parseFloat(juros) || 0) + 
+                        (parseFloat(multa) || 0) - 
+                        (parseFloat(desconto) || 0)
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-sm text-neutral-400 mb-2">Valor do Pagamento</label>
+                  <label className="block text-sm text-neutral-400 mb-2">Valor Efetivamente Pago pelo Cliente</label>
                   <input
                     type="number"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 font-bold"
                     placeholder="Valor"
                     step="0.01"
                   />
+                  <div className="mt-3 flex items-start gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="forceQuitado"
+                      checked={forceQuitado}
+                      onChange={(e) => setForceQuitado(e.target.checked)}
+                      className="mt-1 rounded border-white/10 text-emerald-500 focus:ring-emerald-500/50 bg-black/20 w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="forceQuitado" className="text-xs text-neutral-400 cursor-pointer">
+                      Dar baixa/Quitar esta parcela (mesmo em caso de desconto ou pagamento parcial)
+                    </label>
+                  </div>
                 </div>
 
                 <div>
@@ -667,6 +714,7 @@ function ParcelaCard({ parcela, onPay, paid = false, isLate = false }: {
   onPay?: () => void; 
   paid?: boolean;
   isLate?: boolean;
+  key?: React.Key;
 }) {
   const [expanded, setExpanded] = useState(false);
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Search, Filter, Loader2, MapPin, DollarSign, Calendar, User, Phone, Mail, CreditCard, ChevronDown, ChevronUp, MessageCircle, Copy, Check, Clock, TrendingUp } from 'lucide-react';
+import { resolveUrl } from '../utils/url';
+import { Users, Search, Filter, Loader2, MapPin, DollarSign, Calendar, User, Phone, Mail, CreditCard, ChevronDown, ChevronUp, MessageCircle, Copy, Check, Clock, TrendingUp, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const formatCurrency = (value: number) => {
@@ -18,9 +19,21 @@ export default function Compradores() {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Modal de Pagamento
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedParcela, setSelectedParcela] = useState<any>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('pix');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [juros, setJuros] = useState('');
+  const [multa, setMulta] = useState('');
+  const [desconto, setDesconto] = useState('');
+  const [forceQuitado, setForceQuitado] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+
+  const fetchCompradores = () => {
     const token = localStorage.getItem('adminToken');
-    fetch('/api/financeiro/compradores', {
+    fetch(import.meta.env.BASE_URL + 'api/financeiro/compradores', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -32,7 +45,55 @@ export default function Compradores() {
         console.error("Error fetching compradores:", err);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchCompradores();
   }, []);
+
+  const handleRegistrarPagamento = async () => {
+    if (!selectedParcela) return;
+    
+    setProcessingPayment(true);
+    const token = localStorage.getItem('adminToken');
+    
+    try {
+      const res = await fetch(import.meta.env.BASE_URL + 'api/financeiro/pagamentos', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          parcelaId: selectedParcela.id,
+          loteId: selectedParcela.loteId,
+          amount: parseFloat(paymentAmount) || selectedParcela.amount,
+          juros: parseFloat(juros) || 0,
+          multa: parseFloat(multa) || 0,
+          desconto: parseFloat(desconto) || 0,
+          forceQuitado,
+          paymentMethod: paymentMethod,
+          notes: paymentNotes
+        })
+      });
+
+      if (res.ok) {
+        setShowPaymentModal(false);
+        setSelectedParcela(null);
+        setPaymentAmount('');
+        setPaymentNotes('');
+        setJuros('');
+        setMulta('');
+        setDesconto('');
+        setForceQuitado(false);
+        fetchCompradores();
+      }
+    } catch (err) {
+      console.error('Erro ao registrar pagamento:', err);
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
 
   const toggleCard = (cpf: string) => {
     const newExpanded = new Set(expandedCards);
@@ -391,6 +452,7 @@ export default function Compradores() {
                                       <th className="py-2 text-left font-medium">Vencimento</th>
                                       <th className="py-2 text-left font-medium">Status</th>
                                       <th className="py-2 text-left font-medium">Pago</th>
+                                      <th className="py-2 text-right font-medium">Ação</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-white/5">
@@ -412,6 +474,21 @@ export default function Compradores() {
                                         <td className="py-2">
                                           {parcela.paidAmount ? formatCurrency(parcela.paidAmount) : '-'}
                                         </td>
+                                        <td className="py-2 text-right">
+                                          {parcela.status !== 'pago' && (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedParcela({ ...parcela, loteName: lote.loteName, buyerName: comprador.nome, loteId: lote.loteId });
+                                                setPaymentAmount(parcela.amount.toString());
+                                                setShowPaymentModal(true);
+                                              }}
+                                              className="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-md transition-colors text-xs font-medium"
+                                            >
+                                              Baixar
+                                            </button>
+                                          )}
+                                        </td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -429,6 +506,175 @@ export default function Compradores() {
           ))
         )}
       </div>
+
+      {/* Modal de Pagamento */}
+      <AnimatePresence>
+        {showPaymentModal && selectedParcela && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPaymentModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-neutral-900 border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-medium text-white">Registrar Pagamento</h3>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="text-neutral-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-white/5 rounded-lg p-4">
+                  <p className="text-sm text-neutral-400 mb-1">Parcela</p>
+                  <p className="text-white font-medium">
+                    {selectedParcela.installmentNumber}/{selectedParcela.totalInstallments} - {selectedParcela.loteName}
+                  </p>
+                  <p className="text-sm text-neutral-400 mt-2">
+                    Comprador: <span className="text-white">{selectedParcela.buyerName}</span>
+                  </p>
+                  <p className="text-sm text-neutral-400">
+                    Vencimento: <span className="text-white">{formatDate(selectedParcela.dueDate)}</span>
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-2">Acréscimos (Juros R$)</label>
+                    <input
+                      type="number"
+                      value={juros}
+                      onChange={(e) => setJuros(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500/50"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-2">Multa (R$)</label>
+                    <input
+                      type="number"
+                      value={multa}
+                      onChange={(e) => setMulta(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500/50"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-2">Descontos (- R$)</label>
+                    <input
+                      type="number"
+                      value={desconto}
+                      onChange={(e) => setDesconto(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500/50"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-2">Total Calculado</label>
+                    <div className="w-full bg-black/20 border border-white/5 rounded-lg px-4 py-2 text-emerald-400 font-mono flex items-center h-[42px]">
+                      {formatCurrency(
+                        (selectedParcela.amount || 0) + 
+                        (parseFloat(juros) || 0) + 
+                        (parseFloat(multa) || 0) - 
+                        (parseFloat(desconto) || 0)
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-2">Valor Efetivamente Pago</label>
+                  <input
+                    type="number"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 font-bold"
+                    placeholder="Valor"
+                    step="0.01"
+                  />
+                  <div className="mt-3 flex items-start gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="forceQuitadoComp"
+                      checked={forceQuitado}
+                      onChange={(e) => setForceQuitado(e.target.checked)}
+                      className="mt-1 rounded border-white/10 text-emerald-500 focus:ring-emerald-500/50 bg-black/20 w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="forceQuitadoComp" className="text-xs text-neutral-400 cursor-pointer">
+                      Dar baixa/Quitar esta parcela (mesmo parcial)
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-2">Forma de Pagamento</label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50"
+                  >
+                    <option value="pix">PIX</option>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="boleto">Boleto</option>
+                    <option value="transferencia">Transferência</option>
+                    <option value="cartao">Cartão</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-2">Observações</label>
+                  <textarea
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 resize-none"
+                    placeholder="Observações opcionais"
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 px-4 py-3 rounded-lg bg-white/5 text-neutral-400 hover:bg-white/10 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleRegistrarPagamento}
+                  disabled={processingPayment}
+                  className="flex-1 px-4 py-3 rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {processingPayment ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Confirmar
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

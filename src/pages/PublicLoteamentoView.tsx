@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { resolveUrl } from '../utils/url';
 import { useParams, Link } from 'react-router-dom';
 import { MapContainer, ImageOverlay, Polygon, useMapEvents } from 'react-leaflet';
 
@@ -15,6 +16,10 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Loader2, ArrowLeft, Image as ImageIcon, MapPin, Maximize, Info, CheckCircle2, Navigation, X, Send, MessageCircle, Phone, Clock, Shield, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as pdfjs from 'pdfjs-dist';
+// @ts-ignore
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(import.meta.env.BASE_URL + 'pdf.worker.min.js', window.location.origin).href;
 
 const IMAGE_BOUNDS: L.LatLngBoundsExpression = [[0, 0], [1000, 1000]];
 
@@ -73,6 +78,8 @@ export default function PublicLoteamentoView() {
   const [leadForm, setLeadForm] = useState({ name: '', email: '', phone: '' });
   const [submittingLead, setSubmittingLead] = useState(false);
   const [leadSuccess, setLeadSuccess] = useState(false);
+  const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
+  const [convertingPdf, setConvertingPdf] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -80,8 +87,8 @@ export default function PublicLoteamentoView() {
     const fetchData = async () => {
       try {
         const [loteamentoRes, lotesRes] = await Promise.all([
-          fetch(`/api/loteamentos/${id}`),
-          fetch(`/api/loteamentos/${id}/lotes`)
+          fetch(import.meta.env.BASE_URL + `api/loteamentos/${id}`),
+          fetch(import.meta.env.BASE_URL + `api/loteamentos/${id}/lotes`)
         ]);
 
         if (loteamentoRes.ok) {
@@ -103,13 +110,53 @@ export default function PublicLoteamentoView() {
     fetchData();
   }, [id]);
 
+  // Handle PDF to Image conversion
+  useEffect(() => {
+    if (!loteamento?.imageUrl) return;
+
+    if (loteamento.imageUrl.toLowerCase().endsWith('.pdf')) {
+      const convertPdf = async () => {
+        setConvertingPdf(true);
+        try {
+          const loadingTask = pdfjs.getDocument(resolveUrl(loteamento.imageUrl));
+          const pdf = await loadingTask.promise;
+          const page = await pdf.getPage(1);
+          
+          const viewport = page.getViewport({ scale: 2.0 }); // Use high scale for quality
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          
+          if (context) {
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({
+              canvasContext: context,
+              viewport: viewport,
+              canvas: canvas
+            } as any).promise;
+            
+            setMapImageUrl(canvas.toDataURL('image/png'));
+          }
+        } catch (err) {
+          console.error("Error converting PDF to image:", err);
+        } finally {
+          setConvertingPdf(false);
+        }
+      };
+      convertPdf();
+    } else {
+      setMapImageUrl(loteamento.imageUrl);
+    }
+  }, [loteamento?.imageUrl]);
+
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeLote) return;
     
     setSubmittingLead(true);
     try {
-      const res = await fetch('/api/leads', {
+      const res = await fetch(import.meta.env.BASE_URL + 'api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -134,12 +181,14 @@ export default function PublicLoteamentoView() {
     }
   };
 
-  if (loading || !loteamento) {
+  if (loading || !loteamento || (loteamento.imageUrl?.toLowerCase().endsWith('.pdf') && convertingPdf)) {
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-neutral-950">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 animate-spin text-emerald-500" />
-          <p className="text-emerald-500/70 font-mono text-sm tracking-widest uppercase">Inicializando Sistema...</p>
+          <p className="text-emerald-500/70 font-mono text-sm tracking-widest uppercase">
+            {convertingPdf ? 'Processando Planta...' : 'Inicializando Sistema...'}
+          </p>
         </div>
       </div>
     );
@@ -235,7 +284,7 @@ export default function PublicLoteamentoView() {
                         initial={{ scale: 1.1, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5 }}
-                        src={displayLote.photoUrl} 
+                        src={resolveUrl(displayLote.photoUrl)} 
                         alt={displayLote.name} 
                         className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-110"
                       />
@@ -492,11 +541,13 @@ export default function PublicLoteamentoView() {
           className="w-full h-full bg-[#0a0a0a]"
           style={{ height: '100%', width: '100%', background: '#0a0a0a' }}
         >
-          <ImageOverlay
-            url={loteamento.imageUrl}
-            bounds={IMAGE_BOUNDS}
-            className="opacity-80 mix-blend-screen"
-          />
+          {mapImageUrl && (
+            <ImageOverlay
+              url={resolveUrl(mapImageUrl)}
+              bounds={IMAGE_BOUNDS}
+              className="opacity-80 mix-blend-screen"
+            />
+          )}
           
           <MapEvents onMapClick={() => {
             setActiveLote(null);

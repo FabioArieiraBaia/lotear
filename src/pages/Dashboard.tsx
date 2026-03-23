@@ -1,7 +1,56 @@
 import React, { useEffect, useState } from 'react';
+import { resolveUrl } from '../utils/url';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Map, Calendar, Loader2, Building2, CheckCircle, Clock, TrendingUp, Users, Trash2, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as pdfjs from 'pdfjs-dist';
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(import.meta.env.BASE_URL + 'pdf.worker.min.js', window.location.origin).href;
+
+function PdfThumbnail({ url, alt }: { url: string, alt: string }) {
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadPdf = async () => {
+      try {
+        const loadingTask = pdfjs.getDocument(url);
+        const pdf = await loadingTask.promise;
+        if (!active) return;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.5 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (context) {
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          await page.render({ canvasContext: context, viewport, canvas } as any).promise;
+          if (active) setImgSrc(canvas.toDataURL());
+        }
+      } catch (err) {
+        console.error("PDF preview error:", err);
+      }
+    };
+    loadPdf();
+    return () => { active = false; };
+  }, [url]);
+
+  if (!imgSrc) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-500/10 text-emerald-400 group-hover/card:bg-emerald-500/20 transition-all">
+        <Loader2 className="w-8 h-8 animate-spin mb-2 opacity-80" />
+        <span className="text-[10px] uppercase tracking-widest font-mono opacity-60">Renderizando</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imgSrc}
+      alt={alt}
+      className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500 opacity-80 group-hover/card:opacity-100 mix-blend-screen bg-white shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]"
+    />
+  );
+}
 
 export default function Dashboard() {
   const [loteamentos, setLoteamentos] = useState<any[]>([]);
@@ -19,7 +68,7 @@ export default function Dashboard() {
     const token = localStorage.getItem('adminToken');
     
     try {
-      const response = await fetch(`/api/loteamentos/${deleteModal.loteamento.id}`, {
+      const response = await fetch(import.meta.env.BASE_URL + `api/loteamentos/${deleteModal.loteamento.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -48,7 +97,7 @@ export default function Dashboard() {
       return;
     }
 
-    fetch('/api/loteamentos', {
+    fetch(import.meta.env.BASE_URL + 'api/loteamentos', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -71,7 +120,7 @@ export default function Dashboard() {
         // Fetch stats for all loteamentos
         try {
           const lotesPromises = data.map((loteamento: any) => 
-            fetch(`/api/loteamentos/${loteamento.id}/lotes`).then(res => res.json())
+            fetch(import.meta.env.BASE_URL + `api/loteamentos/${loteamento.id}/lotes`).then(res => res.json())
           );
           
           const allLotes = await Promise.all(lotesPromises);
@@ -242,11 +291,15 @@ export default function Dashboard() {
               >
                 <div className="aspect-video w-full bg-neutral-900 relative overflow-hidden">
                   {loteamento.imageUrl ? (
-                    <img
-                      src={loteamento.imageUrl}
-                      alt={loteamento.name}
-                      className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500 opacity-80 group-hover/card:opacity-100 mix-blend-screen"
-                    />
+                    loteamento.imageUrl.toLowerCase().endsWith('.pdf') ? (
+                      <PdfThumbnail url={resolveUrl(loteamento.imageUrl)} alt={loteamento.name} />
+                    ) : (
+                      <img
+                        src={resolveUrl(loteamento.imageUrl)}
+                        alt={loteamento.name}
+                        className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500 opacity-80 group-hover/card:opacity-100 mix-blend-screen"
+                      />
+                    )
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-600">
                       <Map className="w-12 h-12 opacity-50" />

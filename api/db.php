@@ -68,6 +68,7 @@ function getDatabase() {
             ['lotes', 'corretorId', 'INTEGER REFERENCES corretores(id)'],
             ['lotes', 'saleDate', 'DATE'],
             ['lotes', 'totalPaid', 'REAL DEFAULT 0'],
+            ['lotes', 'commissionRate', 'REAL'],
         ];
         
         foreach ($columns as [$table, $column, $definition]) {
@@ -137,6 +138,18 @@ function getDatabase() {
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(corretorId) REFERENCES corretores(id),
                 FOREIGN KEY(loteId) REFERENCES lotes(id)
+            );
+            
+            CREATE TABLE IF NOT EXISTS admin_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL,
+                permissions TEXT NOT NULL,
+                token TEXT,
+                active INTEGER DEFAULT 1,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         ");
     }

@@ -32,7 +32,7 @@ function handleCreateLoteamento() {
         $destPath = $uploadDir . $uniqueName;
         
         if (move_uploaded_file($_FILES['image']['tmp_name'], $destPath)) {
-            $imageUrl = '/uploads/' . $uniqueName;
+            $imageUrl = 'uploads/' . $uniqueName;
         }
     }
     

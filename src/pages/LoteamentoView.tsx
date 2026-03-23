@@ -5,8 +5,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
-import { Loader2, ArrowLeft, Save, Image as ImageIcon, X, Trash2, MapPin, Layers } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Image as ImageIcon, MapPin, Maximize, Trash2, Check, X, Navigation, Save, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as pdfjs from 'pdfjs-dist';
+import { resolveUrl } from '../utils/url';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(import.meta.env.BASE_URL + 'pdf.worker.min.js', window.location.origin).href;
 
 const IMAGE_BOUNDS: L.LatLngBoundsExpression = [[0, 0], [1000, 1000]];
 
@@ -127,6 +132,8 @@ export default function LoteamentoView() {
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [parcelas, setParcelas] = useState<any[]>([]);
+  const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
+  const [convertingPdf, setConvertingPdf] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -135,9 +142,9 @@ export default function LoteamentoView() {
       try {
         const token = localStorage.getItem('adminToken');
         const [loteamentoRes, lotesRes, corretoresRes] = await Promise.all([
-          fetch(`/api/loteamentos/${id}`),
-          fetch(`/api/loteamentos/${id}/lotes`),
-          fetch('/api/corretores', {
+          fetch(import.meta.env.BASE_URL + `api/loteamentos/${id}`),
+          fetch(import.meta.env.BASE_URL + `api/loteamentos/${id}/lotes`),
+          fetch(import.meta.env.BASE_URL + 'api/corretores', {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);
@@ -166,6 +173,46 @@ export default function LoteamentoView() {
     fetchData();
   }, [id]);
 
+  // Handle PDF to Image conversion
+  useEffect(() => {
+    if (!loteamento?.imageUrl) return;
+
+    if (loteamento.imageUrl.toLowerCase().endsWith('.pdf')) {
+      const convertPdf = async () => {
+        setConvertingPdf(true);
+        try {
+          const loadingTask = pdfjs.getDocument(resolveUrl(loteamento.imageUrl));
+          const pdf = await loadingTask.promise;
+          const page = await pdf.getPage(1);
+          
+          const viewport = page.getViewport({ scale: 2.0 }); // Use high scale for quality
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          
+          if (context) {
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({
+              canvasContext: context,
+              viewport: viewport,
+              canvas: canvas
+            } as any).promise;
+            
+            setMapImageUrl(canvas.toDataURL('image/png'));
+          }
+        } catch (err) {
+          console.error("Error converting PDF to image:", err);
+        } finally {
+          setConvertingPdf(false);
+        }
+      };
+      convertPdf();
+    } else {
+      setMapImageUrl(loteamento.imageUrl);
+    }
+  }, [loteamento?.imageUrl]);
+
   const handleSaveLote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeLote || saving) return; // Prevenir múltiplos cliques
@@ -173,7 +220,7 @@ export default function LoteamentoView() {
     const token = localStorage.getItem('adminToken');
     try {
       // Salvar dados do lote
-      await fetch(`/api/lotes/${activeLote.id}`, {
+      await fetch(import.meta.env.BASE_URL + `api/lotes/${activeLote.id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -193,13 +240,14 @@ export default function LoteamentoView() {
           paymentStatus: activeLote.paymentStatus,
           downPayment: activeLote.downPayment,
           installments: activeLote.installments,
-          saleDate: activeLote.saleDate || new Date().toISOString().split('T')[0]
+          saleDate: activeLote.saleDate || new Date().toISOString().split('T')[0],
+          commissionRate: activeLote.commissionRate
         })
       });
       
       // Se está sendo vendido e tem parcelas, gerar as parcelas
       if ((activeLote.status === 'Vendido' || activeLote.status === 'Reservado') && activeLote.installments > 0) {
-        await fetch(`/api/parcelas/generate/${activeLote.id}`, {
+        await fetch(import.meta.env.BASE_URL + `api/parcelas/generate/${activeLote.id}`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -209,14 +257,15 @@ export default function LoteamentoView() {
             downPayment: activeLote.downPayment || 0,
             installments: activeLote.installments,
             startDate: activeLote.saleDate || new Date().toISOString().split('T')[0],
-            dayOfMonth: 10
+            dayOfMonth: 10,
+            commissionRate: activeLote.commissionRate
           })
         });
       }
       
       // Se voltou para Disponível, limpar dados financeiros
       if (activeLote.status === 'Disponível' || activeLote.status === 'Livre') {
-        await fetch(`/api/financeiro/lote/${activeLote.id}`, {
+        await fetch(import.meta.env.BASE_URL + `api/financeiro/lote/${activeLote.id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -263,7 +312,7 @@ export default function LoteamentoView() {
         installments: 1
       };
       
-      const res = await fetch('/api/lotes', {
+      const res = await fetch(import.meta.env.BASE_URL + 'api/lotes', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -286,7 +335,7 @@ export default function LoteamentoView() {
   const handleEditPolygon = useCallback(async (loteId: string, newPolygon: number[][]) => {
     const token = localStorage.getItem('adminToken');
     try {
-      await fetch(`/api/lotes/${loteId}`, {
+      await fetch(import.meta.env.BASE_URL + `api/lotes/${loteId}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -309,7 +358,7 @@ export default function LoteamentoView() {
     if (!activeLote) return;
     const token = localStorage.getItem('adminToken');
     try {
-      await fetch(`/api/lotes/${activeLote.id}`, {
+      await fetch(import.meta.env.BASE_URL + `api/lotes/${activeLote.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -324,7 +373,7 @@ export default function LoteamentoView() {
     }
   };
 
-  if (loading || !loteamento) {
+  if (loading || !loteamento || (loteamento.imageUrl?.toLowerCase().endsWith('.pdf') && convertingPdf)) {
     return (
       <div className="flex items-center justify-center h-full min-h-[100vh] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
         <motion.div 
@@ -333,7 +382,9 @@ export default function LoteamentoView() {
           className="text-center"
         >
           <Loader2 className="w-12 h-12 animate-spin text-emerald-400 mx-auto mb-4" />
-          <p className="text-gray-400">Carregando loteamento...</p>
+          <p className="text-gray-400">
+            {convertingPdf ? 'Processando planta PDF...' : 'Carregando loteamento...'}
+          </p>
         </motion.div>
       </div>
     );
@@ -447,18 +498,43 @@ export default function LoteamentoView() {
 
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1">Corretor Responsável</label>
-                    <select
-                      value={activeLote.corretorId || ''}
-                      onChange={(e) => setActiveLote({ ...activeLote, corretorId: e.target.value ? parseInt(e.target.value) : null })}
-                      className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
-                    >
-                      <option value="">Selecione um corretor</option>
-                      {corretores.map((corretor) => (
-                        <option key={corretor.id} value={corretor.id} className="bg-gray-800">
-                          {corretor.name} {corretor.creci ? `- CRECI: ${corretor.creci}` : ''} (Comissão: {(corretor.commissionRate * 100).toFixed(1)}%)
-                        </option>
-                      ))}
-                    </select>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-2">
+                        <select
+                          value={activeLote.corretorId || ''}
+                          onChange={(e) => {
+                            const cid = e.target.value ? parseInt(e.target.value) : null;
+                            const corretor = corretores.find(c => c.id === cid);
+                            setActiveLote({ 
+                              ...activeLote, 
+                              corretorId: cid,
+                              commissionRate: corretor ? corretor.commissionRate : activeLote.commissionRate
+                            });
+                          }}
+                          className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
+                        >
+                          <option value="">Selecione um corretor</option>
+                          {corretores.map((corretor) => (
+                            <option key={corretor.id} value={corretor.id} className="bg-gray-800">
+                              {corretor.name} {corretor.creci ? `- CRECI: ${corretor.creci}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={activeLote.commissionRate !== undefined && activeLote.commissionRate !== null ? (activeLote.commissionRate * 100).toFixed(1) : ''}
+                            onChange={(e) => setActiveLote({ ...activeLote, commissionRate: parseFloat(e.target.value) / 100 })}
+                            placeholder="Comissão %"
+                            className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white pr-8"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -526,12 +602,13 @@ export default function LoteamentoView() {
                           {(() => {
                             const corretor = corretores.find(c => c.id === parseInt(activeLote.corretorId));
                             if (corretor) {
-                              const comissao = (activeLote.price || 0) * (corretor.commissionRate || 0.05);
+                              const rate = activeLote.commissionRate !== undefined && activeLote.commissionRate !== null ? activeLote.commissionRate : (corretor.commissionRate || 0.05);
+                              const comissao = (activeLote.price || 0) * rate;
                               return (
                                 <div className="grid grid-cols-2 gap-2 text-gray-300">
                                   <span>Corretor:</span>
                                   <span className="text-white">{corretor.name}</span>
-                                  <span>Comissão ({(corretor.commissionRate * 100).toFixed(1)}%):</span>
+                                  <span>Comissão ({(rate * 100).toFixed(1)}%):</span>
                                   <span className="text-amber-400 font-mono">R$ {comissao.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
                                 </div>
                               );
@@ -550,7 +627,7 @@ export default function LoteamentoView() {
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative overflow-hidden group">
                   {activeLote.photoUrl ? (
                     <div className="absolute inset-0 w-full h-full">
-                      <img src={activeLote.photoUrl} alt="Lote" className="w-full h-full object-cover" />
+                      <img src={resolveUrl(activeLote.photoUrl)} alt="Lote" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <p className="text-white text-sm font-medium flex items-center gap-1">
                           <ImageIcon className="w-4 h-4" /> Trocar
@@ -673,10 +750,12 @@ export default function LoteamentoView() {
           className="w-full h-full"
           style={{ height: '100%', width: '100%' }}
         >
-          <ImageOverlay
-            url={loteamento.imageUrl}
-            bounds={IMAGE_BOUNDS}
-          />
+          {mapImageUrl && (
+            <ImageOverlay
+              url={resolveUrl(mapImageUrl)}
+              bounds={IMAGE_BOUNDS}
+            />
+          )}
           
           <GeomanControl onLoteCreate={handleCreateLote} />
           

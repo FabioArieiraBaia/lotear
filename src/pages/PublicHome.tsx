@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { resolveUrl } from '../utils/url';
 import { Link } from 'react-router-dom';
 import { Map, Calendar, Loader2, ArrowRight, MapPin, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,7 +14,7 @@ export default function PublicHome() {
   const [allLotes, setAllLotes] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/loteamentos')
+    fetch(import.meta.env.BASE_URL + 'api/loteamentos')
       .then(res => res.json())
       .then(data => {
         setLoteamentos(data);
@@ -21,7 +22,7 @@ export default function PublicHome() {
         
         // Fetch lote counts for each loteamento
         data.forEach((loteamento: any) => {
-          fetch(`/api/loteamentos/${loteamento.id}/lotes`)
+          fetch(import.meta.env.BASE_URL + `api/loteamentos/${loteamento.id}/lotes`)
             .then(res => res.json())
             .then(lotes => {
               const counts = {
@@ -250,7 +251,7 @@ export default function PublicHome() {
                     {loteamento.imageUrl ? (
                       <>
                         <img
-                          src={loteamento.imageUrl}
+                          src={resolveUrl(loteamento.imageUrl)}
                           alt={loteamento.name}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-80 group-hover:opacity-100 mix-blend-screen"
                         />

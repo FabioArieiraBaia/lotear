@@ -11,6 +11,8 @@ import Financeiro from './pages/Financeiro';
 import Compradores from './pages/Compradores';
 import Contatos from './pages/Contatos';
 import Corretores from './pages/Corretores';
+import Usuarios from './pages/Usuarios';
+import Apresentacao from './pages/Apresentacao';
 import { Map, LogOut, ShieldAlert } from 'lucide-react';
 
 function Header() {
@@ -63,8 +65,11 @@ function Header() {
 }
 
 export default function App() {
+  // @ts-ignore
+  const basename = import.meta.env.BASE_URL;
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-200 selection:bg-emerald-500/30">
         <Header />
         <main className="flex-1 relative flex flex-col overflow-hidden">
@@ -83,6 +88,8 @@ export default function App() {
               <Route path="compradores" element={<Compradores />} />
               <Route path="contatos" element={<Contatos />} />
               <Route path="corretores" element={<Corretores />} />
+              <Route path="usuarios" element={<Usuarios />} />
+              <Route path="apresentacao" element={<Apresentacao />} />
               <Route path="new" element={<NewLoteamento />} />
               <Route path="loteamento/:id" element={<LoteamentoView />} />
             </Route>

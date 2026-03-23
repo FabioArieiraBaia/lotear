@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { resolveUrl } from '../utils/url';
 import { Briefcase, Plus, Search, Loader2, MapPin, Edit2, Trash2, X, Check, DollarSign, Phone, Mail, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,7 +18,7 @@ export default function Corretores() {
     phone: '',
     cpf: '',
     creci: '',
-    commissionRate: 5
+    commissionRate: 0
   });
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function Corretores() {
   const fetchCorretores = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch('/api/corretores', {
+      const res = await fetch(import.meta.env.BASE_URL + 'api/corretores', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -49,7 +50,7 @@ export default function Corretores() {
       phone: '',
       cpf: '',
       creci: '',
-      commissionRate: 5
+      commissionRate: 0
     });
     setShowModal(true);
   };
@@ -79,7 +80,7 @@ export default function Corretores() {
       };
 
       if (editingCorretor) {
-        await fetch(`/api/corretores/${editingCorretor.id}`, {
+        await fetch(import.meta.env.BASE_URL + `api/corretores/${editingCorretor.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -88,7 +89,7 @@ export default function Corretores() {
           body: JSON.stringify(payload)
         });
       } else {
-        await fetch('/api/corretores', {
+        await fetch(import.meta.env.BASE_URL + 'api/corretores', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -110,7 +111,7 @@ export default function Corretores() {
   const handleDelete = async (id: number) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`/api/corretores/${id}`, {
+      const res = await fetch(import.meta.env.BASE_URL + `api/corretores/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -130,7 +131,7 @@ export default function Corretores() {
   const handleToggleActive = async (corretor: any) => {
     try {
       const token = localStorage.getItem('adminToken');
-      await fetch(`/api/corretores/${corretor.id}`, {
+      await fetch(import.meta.env.BASE_URL + `api/corretores/${corretor.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -292,12 +293,6 @@ export default function Corretores() {
               {/* Stats */}
               <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/10">
                 <div>
-                  <p className="text-xs text-neutral-500">Comissão</p>
-                  <p className="text-sm font-bold text-amber-400">
-                    {((corretor.commissionRate || 0.05) * 100).toFixed(1)}%
-                  </p>
-                </div>
-                <div>
                   <p className="text-xs text-neutral-500">Vendas</p>
                   <p className="text-sm font-bold text-white">{corretor.totalSales || 0}</p>
                 </div>
@@ -314,6 +309,33 @@ export default function Corretores() {
                   </p>
                 </div>
               </div>
+
+              {/* Histórico de Vendas Recentes */}
+              {corretor.recentCommissions && corretor.recentCommissions.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold mb-2">Vendas Recentes</p>
+                  <div className="space-y-2">
+                    {corretor.recentCommissions.map((comm: any) => (
+                      <div key={comm.id} className="flex justify-between items-center bg-black/20 rounded-lg p-2 text-[11px] border border-white/5">
+                        <div className="flex flex-col">
+                          <span className="text-white font-medium truncate max-w-[120px]">
+                            {comm.loteName}
+                          </span>
+                          <span className="text-neutral-500 text-[9px]">{comm.loteamentoName}</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-amber-400 font-mono font-bold">
+                            {formatCurrency(comm.commissionAmount)}
+                          </p>
+                          <p className="text-neutral-500 text-[9px]">
+                            {(comm.commissionRate * 100).toFixed(1)}% de {formatCurrency(comm.saleAmount)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Delete Button */}
               {showDeleteConfirm === corretor.id ? (
@@ -428,23 +450,7 @@ export default function Corretores() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-1">
-                    Taxa de Comissão (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={formData.commissionRate}
-                    onChange={(e) => setFormData({ ...formData, commissionRate: parseFloat(e.target.value) || 5 })}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Ex: 5% = R$ 5.000,00 de comissão em uma venda de R$ 100.000,00
-                  </p>
-                </div>
+                {/* Taxa de comissão removida pois é definida individualmente por venda */}
 
                 <div className="flex gap-3 pt-4">
                   <button

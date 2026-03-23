@@ -44,7 +44,7 @@ export default function Contatos() {
 
   const fetchLeads = async () => {
     try {
-      const res = await fetch('/api/leads', {
+      const res = await fetch(import.meta.env.BASE_URL + 'api/leads', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
@@ -62,7 +62,7 @@ export default function Contatos() {
 
   const updateLeadStatus = async (id: number, status: string) => {
     try {
-      const res = await fetch(`/api/leads/${id}`, {
+      const res = await fetch(import.meta.env.BASE_URL + `api/leads/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -16,7 +16,7 @@ export default function AdminLogin() {
     setError('');
 
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch(import.meta.env.BASE_URL + 'api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -25,6 +25,10 @@ export default function AdminLogin() {
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('adminToken', data.token);
+        if (data.user) {
+          localStorage.setItem('adminUser', JSON.stringify(data.user));
+          localStorage.setItem('adminPermissions', JSON.stringify(data.user.permissions || []));
+        }
         navigate('/admin');
       } else {
         setError('Usuário ou senha incorretos');

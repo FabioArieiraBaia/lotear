@@ -227,7 +227,8 @@ function handleGenerateParcelas($loteId) {
         
         // Gerar comissão do corretor se houver
         if ($lote['corretorId']) {
-            handleGenerateComissao($db, $lote['corretorId'], $loteId, $price);
+            $specificRate = $data['commissionRate'] ?? $lote['commissionRate'] ?? null;
+            handleGenerateComissao($db, $lote['corretorId'], $loteId, $price, $specificRate);
         }
         
         $db->commit();
@@ -298,6 +299,23 @@ function handleRegistrarPagamento() {
     $notes = $data['notes'] ?? '';
     $paidAt = $data['paidAt'] ?? date('Y-m-d H:i:s');
     
+    $juros = floatval($data['juros'] ?? 0);
+    $multa = floatval($data['multa'] ?? 0);
+    $desconto = floatval($data['desconto'] ?? 0);
+    $forceQuitado = $data['forceQuitado'] ?? false;
+    
+    // Anexar juros/multa/desconto nas observações se existirem
+    $extraAnotacoes = [];
+    if ($juros > 0) $extraAnotacoes[] = "Juros: R$ " . number_format($juros, 2, ',', '.');
+    if ($multa > 0) $extraAnotacoes[] = "Multa: R$ " . number_format($multa, 2, ',', '.');
+    if ($desconto > 0) $extraAnotacoes[] = "Desconto: R$ " . number_format($desconto, 2, ',', '.');
+    if ($forceQuitado && $desconto > 0) $extraAnotacoes[] = "(Baixa Forçada com Desconto)";
+    
+    $finalNotes = $notes;
+    if (!empty($extraAnotacoes)) {
+        $finalNotes = implode(" | ", $extraAnotacoes) . ($notes ? " - " . $notes : "");
+    }
+    
     // Iniciar transação
     $db->beginTransaction();
     
@@ -307,7 +325,7 @@ function handleRegistrarPagamento() {
             INSERT INTO pagamentos (loteId, parcelaId, amount, type, paymentMethod, paidAt, notes)
             VALUES (?, ?, ?, "parcela", ?, ?, ?)
         ');
-        $stmt->execute([$loteId, $parcelaId, $amount, $paymentMethod, $paidAt, $notes]);
+        $stmt->execute([$loteId, $parcelaId, $amount, $paymentMethod, $paidAt, $finalNotes]);
         
         // Se for pagamento de parcela específica
         if ($parcelaId) {
@@ -323,7 +341,7 @@ function handleRegistrarPagamento() {
                 $totalPago = floatval($stmtTotal->fetch()['total']);
                 
                 // Atualizar status da parcela
-                $novoStatus = $totalPago >= $parcela['amount'] ? 'pago' : 'pendente';
+                $novoStatus = ($totalPago >= $parcela['amount'] || $forceQuitado) ? 'pago' : 'pendente';
                 $stmtUpdate = $db->prepare('UPDATE parcelas SET status = ?, paidAt = ?, paidAmount = ? WHERE id = ?');
                 $stmtUpdate->execute([$novoStatus, $paidAt, $totalPago, $parcelaId]);
             }
@@ -402,15 +420,19 @@ function handleGetComissoes() {
     jsonResponse($comissoes);
 }
 
-function handleGenerateComissao($db, $corretorId, $loteId, $saleAmount) {
-    // Buscar taxa de comissão do corretor
-    $stmtCorretor = $db->prepare('SELECT commissionRate FROM corretores WHERE id = ?');
-    $stmtCorretor->execute([$corretorId]);
-    $corretor = $stmtCorretor->fetch();
+function handleGenerateComissao($db, $corretorId, $loteId, $saleAmount, $customCommissionRate = null) {
+    if ($customCommissionRate !== null) {
+        $commissionRate = floatval($customCommissionRate);
+    } else {
+        // Buscar taxa de comissão do corretor
+        $stmtCorretor = $db->prepare('SELECT commissionRate FROM corretores WHERE id = ?');
+        $stmtCorretor->execute([$corretorId]);
+        $corretor = $stmtCorretor->fetch();
+        
+        if (!$corretor) return;
+        $commissionRate = floatval($corretor['commissionRate'] ?? 0.05);
+    }
     
-    if (!$corretor) return;
-    
-    $commissionRate = floatval($corretor['commissionRate'] ?? 0.05);
     $commissionAmount = $saleAmount * $commissionRate;
     
     // Verificar se já existe comissão para este lote
@@ -492,9 +514,10 @@ function handleGetVendas() {
             lotes.paymentStatus as statusPagamento,
             lotes.totalPaid as totalPago,
             lotes.corretorId,
+            lotes.commissionRate as customComissao,
             loteamentos.name as loteamentoName,
             corretores.name as corretorNome,
-            corretores.commissionRate as corretorTaxa,
+            COALESCE(lotes.commissionRate, corretores.commissionRate) as corretorTaxa,
             (SELECT COUNT(*) FROM parcelas WHERE parcelas.loteId = lotes.id AND parcelas.status = "pago") as parcelasPagas,
             (SELECT COUNT(*) FROM parcelas WHERE parcelas.loteId = lotes.id) as parcelasGeradas,
             (SELECT COALESCE(SUM(amount), 0) FROM parcelas WHERE parcelas.loteId = lotes.id AND parcelas.status = "pendente") as valorPendente

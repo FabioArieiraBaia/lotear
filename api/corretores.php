@@ -32,6 +32,19 @@ function handleGetAllCorretores() {
         $stmtComm->execute([$corretor['id']]);
         $comissaoData = $stmtComm->fetch();
         $corretor = array_merge($corretor, $comissaoData);
+        
+        // Buscar comissões recentes (detalhamento)
+        $stmtRecent = $db->prepare('
+            SELECT c.*, l.name as loteName, loteamentos.name as loteamentoName
+            FROM comissoes c
+            LEFT JOIN lotes l ON c.loteId = l.id
+            LEFT JOIN loteamentos ON l.loteamentoId = loteamentos.id
+            WHERE c.corretorId = ?
+            ORDER BY c.createdAt DESC
+            LIMIT 5
+        ');
+        $stmtRecent->execute([$corretor['id']]);
+        $corretor['recentCommissions'] = $stmtRecent->fetchAll();
     }
     
     jsonResponse($corretores);

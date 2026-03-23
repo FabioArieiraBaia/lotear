@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { resolveUrl } from '../utils/url';
 import { useNavigate } from 'react-router-dom';
 import { UploadCloud, Loader2, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import * as pdfjs from 'pdfjs-dist';
+// @ts-ignore
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(import.meta.env.BASE_URL + 'pdf.worker.min.js', window.location.origin).href;
 
 export default function NewLoteamento() {
   const [name, setName] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isPdf, setIsPdf] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -22,18 +28,44 @@ export default function NewLoteamento() {
     const selected = e.target.files?.[0];
     if (selected) {
       setFile(selected);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(selected);
+      const isPdfFile = selected.type === 'application/pdf' || selected.name.toLowerCase().endsWith('.pdf');
+      setIsPdf(isPdfFile);
+
+      if (isPdfFile) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const typedarray = new Uint8Array(e.target?.result as ArrayBuffer);
+          try {
+            const pdf = await pdfjs.getDocument(resolveUrl(typedarray)).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 0.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (context) {
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+              await page.render({ canvasContext: context, viewport, canvas } as any).promise;
+              setPreview(canvas.toDataURL());
+            }
+          } catch (err) {
+            console.error("Error generating PDF preview:", err);
+          }
+        };
+        reader.readAsArrayBuffer(selected);
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreview(reader.result as string);
+        };
+        reader.readAsDataURL(selected);
+      }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !file) {
-      setError("Preencha o nome e selecione uma imagem.");
+      setError("Preencha o nome e selecione um arquivo.");
       return;
     }
 
@@ -47,7 +79,7 @@ export default function NewLoteamento() {
       formData.append('name', name);
       formData.append('image', file);
 
-      const response = await fetch('/api/loteamentos', {
+      const response = await fetch(import.meta.env.BASE_URL + 'api/loteamentos', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -109,16 +141,23 @@ export default function NewLoteamento() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Planta do Loteamento (Imagem)
+              Planta do Loteamento (Imagem ou PDF)
             </label>
             
             <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl hover:bg-gray-50 transition-colors relative overflow-hidden group">
               {preview ? (
                 <div className="absolute inset-0 w-full h-full">
-                  <img src={preview} alt="Preview" className="w-full h-full object-contain" />
+                  {isPdf ? (
+                    <div className="relative w-full h-full flex items-center justify-center bg-gray-50">
+                      <img src={preview} alt="PDF Preview" className="h-full object-contain" />
+                      <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded">PDF</div>
+                    </div>
+                  ) : (
+                    <img src={preview} alt="Preview" className="w-full h-full object-contain" />
+                  )}
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <p className="text-white font-medium flex items-center gap-2">
-                      <UploadCloud className="w-5 h-5" /> Trocar imagem
+                      <UploadCloud className="w-5 h-5" /> Trocar arquivo
                     </p>
                   </div>
                 </div>
@@ -130,15 +169,15 @@ export default function NewLoteamento() {
                       Fazer upload de um arquivo
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
+                  <p className="text-xs text-gray-500">PNG, JPG, PDF até 20MB</p>
                 </div>
               )}
               <input
                 type="file"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                accept="image/*"
+                accept="image/*,.pdf"
                 onChange={handleFileChange}
-                required={!preview}
+                required={!preview && !isPdf}
               />
             </div>
           </div>

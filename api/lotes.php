@@ -33,8 +33,8 @@ function handleCreateLote() {
     $stmt = $db->prepare('
         INSERT INTO lotes (
             loteamentoId, name, polygon, area, status, owner, photoUrl, notes,
-            price, buyerName, buyerCpf, brokerName, paymentStatus, downPayment, installments
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            price, buyerName, buyerCpf, brokerName, paymentStatus, downPayment, installments, commissionRate
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ');
     
     $stmt->execute([
@@ -53,6 +53,7 @@ function handleCreateLote() {
         $data['paymentStatus'] ?? 'pendente',
         $data['downPayment'] ?? 0,
         $data['installments'] ?? 1,
+        $data['commissionRate'] ?? null,
     ]);
     
     $id = $db->lastInsertId();
@@ -70,7 +71,7 @@ function handleUpdateLote($id) {
     $allowedFields = [
         'name', 'area', 'status', 'owner', 'photoUrl', 'notes',
         'price', 'buyerName', 'buyerCpf', 'brokerName', 'paymentStatus',
-        'downPayment', 'installments', 'corretorId', 'saleDate'
+        'downPayment', 'installments', 'corretorId', 'saleDate', 'commissionRate'
     ];
     
     foreach ($allowedFields as $field) {

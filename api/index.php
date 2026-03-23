@@ -30,6 +30,7 @@ require_once __DIR__ . '/lotes.php';
 require_once __DIR__ . '/leads.php';
 require_once __DIR__ . '/corretores.php';
 require_once __DIR__ . '/financeiro.php';
+require_once __DIR__ . '/usuarios.php';
 
 // Parse the request path
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -194,6 +195,28 @@ try {
     // DELETE /api/financeiro/lote/:id (limpar dados financeiros de um lote)
     elseif (preg_match('#^/api/financeiro/lote/(\d+)$#', $path, $matches) && $method === 'DELETE') {
         handleLimparDadosFinanceiros((int)$matches[1]);
+    }
+    
+    // ==================== USUÁRIOS ====================
+    
+    // GET /api/usuarios
+    elseif ($path === '/api/usuarios' && $method === 'GET') {
+        handleGetUsuarios();
+    }
+    
+    // POST /api/usuarios
+    elseif ($path === '/api/usuarios' && $method === 'POST') {
+        handleCreateUsuario();
+    }
+    
+    // PUT /api/usuarios/:id
+    elseif (preg_match('#^/api/usuarios/(\d+)$#', $path, $matches) && $method === 'PUT') {
+        handleUpdateUsuario((int)$matches[1]);
+    }
+    
+    // DELETE /api/usuarios/:id
+    elseif (preg_match('#^/api/usuarios/(\d+)$#', $path, $matches) && $method === 'DELETE') {
+        handleDeleteUsuario((int)$matches[1]);
     }
     
     // 404 - Route not found

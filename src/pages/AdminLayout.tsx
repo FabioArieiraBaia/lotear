@@ -1,6 +1,7 @@
 import React from 'react';
-import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
-import { Map, DollarSign, Users, Contact, Briefcase, LayoutDashboard } from 'lucide-react';
+import { resolveUrl } from '../utils/url';
+import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
+import { Map, DollarSign, Users, Contact, Briefcase, LayoutDashboard, ShieldAlert, MonitorPlay } from 'lucide-react';
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -11,12 +12,30 @@ export default function AdminLayout() {
   }
 
   const menuItems = [
-    { path: '/admin', icon: LayoutDashboard, label: 'Loteamentos' },
-    { path: '/admin/financeiro', icon: DollarSign, label: 'Financeiro' },
-    { path: '/admin/compradores', icon: Users, label: 'Compradores' },
-    { path: '/admin/contatos', icon: Contact, label: 'Contatos' },
-    { path: '/admin/corretores', icon: Briefcase, label: 'Corretores' },
+    { id: 'loteamentos', path: '/admin', icon: LayoutDashboard, label: 'Loteamentos' },
+    { id: 'apresentacao', path: '/admin/apresentacao', icon: MonitorPlay, label: 'Apresentação' },
+    { id: 'financeiro', path: '/admin/financeiro', icon: DollarSign, label: 'Financeiro' },
+    { id: 'compradores', path: '/admin/compradores', icon: Users, label: 'Compradores' },
+    { id: 'contatos', path: '/admin/contatos', icon: Contact, label: 'Contatos' },
+    { id: 'corretores', path: '/admin/corretores', icon: Briefcase, label: 'Corretores' },
+    { id: 'usuarios', path: '/admin/usuarios', icon: ShieldAlert, label: 'Usuários' },
   ];
+
+  let permissions: string[] = [];
+  try {
+    permissions = JSON.parse(localStorage.getItem('adminPermissions') || '[]');
+    // Se for admin antigo que logou antes do módulo Apresentação existir, forçamos o acesso sem pedir re-login
+    if (permissions.length > 0 && permissions.includes('usuarios') && !permissions.includes('apresentacao')) {
+      permissions.push('apresentacao');
+    }
+  } catch (e) {
+    permissions = [];
+  }
+
+  // fallback to full access if permissions is empty but token exists (e.g. legacy admin)
+  const allowedMenuItems = permissions.length > 0 
+    ? menuItems.filter(item => permissions.includes(item.id))
+    : menuItems;
 
   return (
     <div className="flex h-full flex-1 overflow-hidden">
@@ -25,7 +44,7 @@ export default function AdminLayout() {
         <div className="p-6">
           <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">Módulos</h2>
           <nav className="space-y-2">
-            {menuItems.map((item) => {
+            {allowedMenuItems.map((item) => {
               const isActive = location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path));
               return (
                 <Link
@@ -48,7 +67,7 @@ export default function AdminLayout() {
 
       {/* Mobile Nav (Bottom) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-white/10 z-50 flex justify-around p-3 pb-safe">
-        {menuItems.map((item) => {
+        {allowedMenuItems.map((item) => {
           const isActive = location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path));
           return (
             <Link
