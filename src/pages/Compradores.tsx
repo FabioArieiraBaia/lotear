@@ -6,6 +6,8 @@ import {
   ArrowRight, ShieldCheck, Map, CheckCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LoteamentoQuickView from '../components/QuickView';
+import { Link } from 'react-router-dom';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -26,7 +28,8 @@ export default function Compradores() {
   // Modal de Pagamento
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedParcela, setSelectedParcela] = useState<any>(null);
-  const [paymentAmount, setPaymentAmount] = useState('');
+  const [isAntecipado, setIsAntecipado] = useState(false);
+  const [paymentOverride, setPaymentOverride] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('pix');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [juros, setJuros] = useState('');
@@ -56,6 +59,13 @@ export default function Compradores() {
     fetchCompradores();
   }, []);
 
+  // valorFinal: computed automatically from juros/desconto as PERCENTAGE
+  const valorFinalCalculado = selectedParcela
+    ? (selectedParcela.amount || 0) * (1 + (parseFloat(juros || '0') / 100)) - 
+      ((selectedParcela.amount || 0) * (parseFloat(desconto || '0') / 100))
+    : 0;
+  const valorFinal = paymentOverride !== null ? parseFloat(paymentOverride) || 0 : valorFinalCalculado;
+
   const handleRegistrarPagamento = async () => {
     if (!selectedParcela) return;
     setProcessingPayment(true);
@@ -70,7 +80,7 @@ export default function Compradores() {
         body: JSON.stringify({
           parcelaId: selectedParcela.id,
           loteId: selectedParcela.loteId,
-          amount: parseFloat(paymentAmount) || selectedParcela.amount,
+          amount: valorFinal,
           juros: parseFloat(juros) || 0,
           multa: parseFloat(multa) || 0,
           desconto: parseFloat(desconto) || 0,
@@ -83,12 +93,13 @@ export default function Compradores() {
       if (res.ok) {
         setShowPaymentModal(false);
         setSelectedParcela(null);
-        setPaymentAmount('');
+        setPaymentOverride(null);
         setPaymentNotes('');
         setJuros('');
         setMulta('');
         setDesconto('');
         setForceQuitado(false);
+        setIsAntecipado(false);
         fetchCompradores();
       }
     } catch (err) {
@@ -290,10 +301,14 @@ export default function Compradores() {
                                         <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 group-hover/lote:scale-110 transition-transform">
                                            <Map className="w-6 h-6 text-emerald-400" />
                                         </div>
-                                        <div>
-                                           <h4 className="text-xl font-bold text-white tracking-tight leading-none mb-1">{lote.loteName}</h4>
-                                           <p className="text-neutral-500 text-sm font-medium">{lote.loteamentoName}</p>
-                                        </div>
+                                         <div>
+                                            <h4 className="text-xl font-bold text-white tracking-tight leading-none mb-1">{lote.loteName}</h4>
+                                            <LoteamentoQuickView id={lote.loteamentoId}>
+                                               <Link to={`/admin/loteamento/${lote.loteamentoId}`} className="text-neutral-500 text-sm font-medium hover:text-emerald-400 transition-colors">
+                                                 {lote.loteamentoName}
+                                               </Link>
+                                            </LoteamentoQuickView>
+                                         </div>
                                      </div>
                                      
                                      <div className="grid grid-cols-2 gap-4">
@@ -361,7 +376,7 @@ export default function Compradores() {
 
                                   {/* Tabela de Parcelas Compacta */}
                                   <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] overflow-hidden">
-                                     <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                     <div className="w-full">
                                         <table className="w-full text-left border-collapse">
                                             <thead className="sticky top-0 bg-neutral-900 border-b border-white/10 z-10 transition-colors">
                                                <tr className="text-[9px] text-neutral-500 uppercase font-black tracking-widest">
@@ -391,7 +406,7 @@ export default function Compradores() {
                                                          <button 
                                                            onClick={() => {
                                                               setSelectedParcela({ ...parcela, loteName: lote.loteName, buyerName: comprador.nome, loteId: lote.loteId });
-                                                              setPaymentAmount(parcela.amount.toString());
+                                                              setPaymentOverride(null); setJuros(''); setDesconto(''); setIsAntecipado(false);
                                                               setShowPaymentModal(true);
                                                            }}
                                                            className="p-2 bg-emerald-500 text-black rounded-lg hover:scale-110 active:scale-95 transition-all shadow-lg shadow-emerald-500/10"
@@ -461,68 +476,102 @@ export default function Compradores() {
                           <p className="text-white font-bold text-lg">{selectedParcela.installmentNumber}/{selectedParcela.totalInstallments}</p>
                        </div>
                     </div>
-                    <div>
-                       <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Titular</p>
-                       <p className="text-emerald-400 font-bold text-sm">{selectedParcela.buyerName}</p>
+                    <div className="flex gap-4 pt-4 border-t border-white/5 items-center justify-between">
+                       <div className="flex-1">
+                          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Titular</p>
+                          <p className="text-emerald-400 font-bold text-sm">{selectedParcela.buyerName}</p>
+                       </div>
+                       <div className="text-right flex flex-col items-end">
+                          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Vencimento Original</p>
+                          <p className="text-white font-bold text-sm tracking-tight">{formatDate(selectedParcela.dueDate)}</p>
+                          {(() => {
+                            const today = new Date(); today.setHours(0,0,0,0);
+                            const dv = new Date(selectedParcela.dueDate); dv.setHours(23,59,59,999);
+                            const diff = Math.ceil((dv.getTime() - today.getTime()) / (1000 * 3600 * 24));
+                            if (diff < 0) return <span className="bg-red-500/10 text-red-500 text-[9px] font-black px-2 py-0.5 rounded mt-1 uppercase">Atrasado há {Math.abs(diff)} dias</span>;
+                            if (diff === 0) return <span className="bg-amber-500/10 text-amber-500 text-[9px] font-black px-2 py-0.5 rounded mt-1 uppercase">Vence Hoje</span>;
+                            return <span className="bg-emerald-500/10 text-emerald-500 text-[9px] font-black px-2 py-0.5 rounded mt-1 uppercase">Adiantado em {diff} dias</span>;
+                          })()}
+                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                       <div>
-                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2">Juros (+ R$)</label>
-                          <input type="number" value={juros} onChange={(e) => setJuros(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm" placeholder="0.00" />
+                       <div className="relative">
+                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Juros (+ %)</label>
+                          <div className="relative">
+                            <input type="number" value={juros} onChange={(e) => setJuros(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm pr-10" placeholder="0" />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-600 font-bold text-xs">%</span>
+                          </div>
                        </div>
-                       <div>
-                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2">Descontos (- R$)</label>
-                          <input type="number" value={desconto} onChange={(e) => setDesconto(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm" placeholder="0.00" />
+                       <div className="relative">
+                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Descontos (- %)</label>
+                          <div className="relative">
+                            <input type="number" value={desconto} onChange={(e) => setDesconto(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm pr-10" placeholder="0" />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-600 font-bold text-xs">%</span>
+                          </div>
                        </div>
                     </div>
 
                     <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-6 flex flex-col justify-center items-center">
-                       <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-widest mb-2">Valor Ajustado</p>
-                       <p className="text-2xl font-bold text-emerald-400 font-heading">
-                          {formatCurrency(
-                            (selectedParcela.amount || 0) + 
-                            (parseFloat(juros) || 0) + 
-                            (parseFloat(multa) || 0) - 
-                            (parseFloat(desconto) || 0)
-                          )}
+                       <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-widest mb-2">Total Ajustado</p>
+                       <p className="text-3xl font-bold text-emerald-400 font-heading">
+                          {formatCurrency(valorFinalCalculado)}
                        </p>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2">Valor Total Recebido</label>
-                    <input
-                      type="number"
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold text-xl font-heading"
-                      placeholder="R$ 0.00"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
+                    <div>
+                       <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Valor Final Recebido</label>
+                       <input
+                         type="number"
+                         value={paymentOverride !== null ? paymentOverride : valorFinalCalculado.toFixed(2)}
+                         onChange={(e) => setPaymentOverride(e.target.value)}
+                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold text-xl font-heading shadow-inner"
+                         placeholder="R$ 0.00"
+                         step="0.01"
+                       />
+                    </div>
+                    <div>
+                       <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Método</label>
+                      <select 
+                        value={paymentMethod} 
+                        onChange={(e) => setPaymentMethod(e.target.value)} 
+                        className="w-full bg-neutral-800 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold text-sm tracking-wider uppercase appearance-none cursor-pointer hover:bg-neutral-700 transition-colors"
+                      >
+                        <option value="pix" className="bg-neutral-900 text-white">PIX / Dinheiro</option>
+                        <option value="dinheiro" className="bg-neutral-900 text-white">Espécie / Dinheiro</option>
+                        <option value="boleto" className="bg-neutral-900 text-white">Boleto Bancário</option>
+                        <option value="transferencia" className="bg-neutral-900 text-white">Transferência / TED</option>
+                        <option value="cartao" className="bg-neutral-900 text-white">Cartão Débito/Crédito</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                       <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2">Forma de Pagamento</label>
-                       <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-bold text-xs uppercase bg-neutral-900">
-                         <option value="pix">PIX / Dinheiro</option>
-                         <option value="boleto">Boleto</option>
-                         <option value="transferencia">Transferência</option>
-                         <option value="cartao">Cartão</option>
-                       </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5 group hover:bg-emerald-500/5 transition-colors cursor-pointer" onClick={() => {
+                        const newVal = !isAntecipado;
+                        setIsAntecipado(newVal);
+                        if (newVal) setDesconto('5'); else setDesconto('0');
+                    }}>
+                      <input type="checkbox" id="isAntecipado" checked={isAntecipado} readOnly className="w-5 h-5 rounded-lg border-white/10 text-emerald-500 focus:ring-emerald-500/20 bg-neutral-900 cursor-pointer" />
+                      <label htmlFor="isAntecipado" className="text-[10px] text-neutral-400 cursor-pointer uppercase font-bold tracking-widest py-1">Bonificação por Anticipação <span className="block text-emerald-500 font-normal normal-case mt-0.5">(Escolha o % sugerido no campo Desconto)</span></label>
                     </div>
-                    <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5 mt-auto">
-                      <input type="checkbox" id="forceQuitado" checked={forceQuitado} onChange={(e) => setForceQuitado(e.target.checked)} className="w-5 h-5 rounded border-white/10 text-emerald-500 bg-neutral-900" />
-                      <label htmlFor="forceQuitado" className="text-[10px] text-neutral-400 font-bold leading-tight">Liquidar parcela integralmente</label>
+
+                    <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5 group hover:bg-blue-500/5 transition-colors cursor-pointer" onClick={() => setForceQuitado(!forceQuitado)}>
+                      <input type="checkbox" id="forceQuitado" checked={forceQuitado} readOnly className="w-5 h-5 rounded-lg border-white/10 text-emerald-500 focus:ring-emerald-500/20 bg-neutral-900 cursor-pointer" />
+                      <label htmlFor="forceQuitado" className="text-[10px] text-neutral-400 cursor-pointer uppercase font-bold tracking-widest py-1">Liquidação Integral <span className="block text-neutral-500 font-normal normal-case mt-0.5">(Considerar Parcela como Paga)</span></label>
                     </div>
                   </div>
                 </div>
 
-                <button onClick={handleRegistrarPagamento} disabled={processingPayment} className="w-full h-16 rounded-[1.5rem] bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 mt-10 disabled:opacity-50">
-                  {processingPayment ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <Check className="w-6 h-6" /> Confirmar Baixa </>}
-                </button>
+                <div className="flex gap-4 mt-12">
+                   <button onClick={handleRegistrarPagamento} disabled={processingPayment} className="flex-[2] h-16 rounded-[1.5rem] bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 group disabled:opacity-50">
+                      {processingPayment ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <Check className="w-6 h-6 group-hover:scale-125 transition-transform" /> Confirmar Recebimento </>}
+                   </button>
+                </div>
              </motion.div>
           </div>
         )}

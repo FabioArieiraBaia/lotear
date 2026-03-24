@@ -13,6 +13,19 @@ export default function Corretores() {
   const [editingCorretor, setEditingCorretor] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  const [showCommissionsModal, setShowCommissionsModal] = useState(false);
+  const [selectedCorretor, setSelectedCorretor] = useState<any>(null);
+  const [commissions, setCommissions] = useState<any[]>([]);
+  const [loadingCommissions, setLoadingCommissions] = useState(false);
+  
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [selectedCommission, setSelectedCommission] = useState<any>(null);
+  const [payData, setPayData] = useState({
+    amount: 0,
+    paymentMethod: 'PIX',
+    paidAt: new Date().toISOString().slice(0, 16),
+    notes: ''
+  });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -138,6 +151,65 @@ export default function Corretores() {
       fetchCorretores();
     } catch (err) {
       console.error("Error toggling corretor:", err);
+    }
+  };
+
+  const fetchCommissions = async (id: number) => {
+    setLoadingCommissions(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(import.meta.env.BASE_URL + `api/comissoes?corretorId=${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setCommissions(await res.json());
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingCommissions(false);
+    }
+  };
+
+  const handleOpenCommissions = (corretor: any) => {
+    setSelectedCorretor(corretor);
+    fetchCommissions(corretor.id);
+    setShowCommissionsModal(true);
+  };
+
+  const handleOpenPay = (comm: any) => {
+    setSelectedCommission(comm);
+    const pendingAmount = comm.commissionAmount - (comm.paidAmount || 0);
+    setPayData({ 
+      ...payData, 
+      amount: pendingAmount,
+      paidAt: new Date().toISOString().slice(0, 16) 
+    });
+    setShowPayModal(true);
+  };
+
+  const handlePayCommission = async () => {
+    if (!selectedCommission) return;
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(import.meta.env.BASE_URL + `api/comissoes/${selectedCommission.id}/pagar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payData)
+      });
+      if (res.ok) {
+        setShowPayModal(false);
+        fetchCommissions(selectedCorretor.id);
+        fetchCorretores();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -298,10 +370,13 @@ export default function Corretores() {
                  </div>
               </div>
 
-              <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+              <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl cursor-pointer hover:bg-emerald-500/10 transition-colors" onClick={() => handleOpenCommissions(corretor)}>
                  <div className="flex justify-between items-center">
-                    <p className="text-[9px] text-emerald-500/70 font-black uppercase tracking-widest">A Receber</p>
-                    <span className="text-xs font-black text-emerald-400 font-mono">{formatCurrency(corretor.comissaoPendente || 0)}</span>
+                    <div className="flex flex-col">
+                       <p className="text-[9px] text-emerald-500/70 font-black uppercase tracking-widest leading-none mb-1">Saldo de Comissões</p>
+                       <p className="text-[8px] text-neutral-500 font-bold uppercase tracking-tighter">Clique para Gerenciar</p>
+                    </div>
+                    <span className="text-sm font-black text-emerald-400 font-mono">{formatCurrency(corretor.comissaoPendente || 0)}</span>
                  </div>
               </div>
 
@@ -378,6 +453,163 @@ export default function Corretores() {
                   {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <ShieldCheck className="w-6 h-6" /> {editingCorretor ? 'Atualizar Perfil' : 'Finalizar Cadastro'} </>}
                 </button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Comissões */}
+      <AnimatePresence>
+        {showCommissionsModal && selectedCorretor && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowCommissionsModal(false)} />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-neutral-900 border border-white/10 rounded-[3rem] p-10 w-full max-w-2xl relative overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
+              
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                   <h3 className="text-2xl font-bold text-white font-heading tracking-tight">Comissões de {selectedCorretor.name}</h3>
+                   <p className="text-neutral-500 text-sm font-medium">Gestão de repasses e liquidações de vendas</p>
+                </div>
+                <button onClick={() => setShowCommissionsModal(false)} className="w-12 h-12 rounded-2xl bg-white/5 text-neutral-500 hover:bg-white/10 transition-all flex items-center justify-center">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {loadingCommissions ? (
+                <div className="py-20 text-center"><Loader2 className="w-10 h-10 animate-spin text-emerald-500 mx-auto" /></div>
+              ) : (
+                <div className="space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
+                  {commissions.length === 0 ? (
+                    <div className="py-12 text-center text-neutral-600 italic">Sem lançamentos de comissão para este corretor.</div>
+                  ) : (
+                    commissions.map(comm => (
+                      <div key={comm.id} className="bg-white/5 border border-white/5 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className="text-xs font-bold text-white uppercase">{comm.loteName}</span>
+                             <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-widest px-1.5 py-0.5 bg-black/40 rounded border border-white/5">{comm.loteamentoName}</span>
+                          </div>
+                          <div className="flex items-center gap-4 text-[10px] text-neutral-500 font-medium">
+                             <span>Venda: {formatCurrency(comm.saleAmount)}</span>
+                             <span>Taxa: {Math.round(comm.commissionRate * 100)}%</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                           <div className="text-right">
+                              <p className="text-xs font-black text-emerald-400 font-mono leading-none mb-1">
+                                {formatCurrency(comm.commissionAmount - (comm.paidAmount || 0))}
+                              </p>
+                              <span className={`text-[8px] font-black uppercase tracking-[0.2em] ${comm.status === 'pago' ? 'text-blue-500' : comm.status === 'parcial' ? 'text-emerald-500' : 'text-amber-500 animate-pulse'}`}>
+                                 {comm.status === 'pago' ? 'Liquidado' : comm.status === 'parcial' ? 'Pago Parcial' : 'Pendente'}
+                              </span>
+                           </div>
+                           
+                           {comm.status !== 'pago' && (
+                             <button 
+                               onClick={() => handleOpenPay(comm)}
+                               className="px-4 py-2.5 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-lg shadow-emerald-500/10"
+                             >
+                               Pagar
+                             </button>
+                           )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Baixa de Comissão */}
+      <AnimatePresence>
+        {showPayModal && selectedCommission && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setShowPayModal(false)} />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-neutral-900 border border-white/10 rounded-[3rem] p-10 w-full max-w-sm relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-white mb-6 font-heading tracking-tight">Baixa de Comissão</h3>
+              
+              <div className="space-y-5">
+                <div>
+                   <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">Valor do Repasse</label>
+                   <div className="relative">
+                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 text-sm font-bold">R$</span>
+                     <input 
+                       type="number" 
+                       value={payData.amount} 
+                       onChange={(e) => setPayData({ ...payData, amount: parseFloat(e.target.value) || 0 })}
+                       className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-5 py-3.5 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all text-sm font-mono"
+                     />
+                   </div>
+                </div>
+
+                <div>
+                   <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">Meio de Pagamento</label>
+                   <select 
+                     value={payData.paymentMethod} 
+                     onChange={(e) => setPayData({ ...payData, paymentMethod: e.target.value })}
+                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all text-sm appearance-none"
+                   >
+                     <option value="PIX" className="bg-neutral-900">PIX</option>
+                     <option value="Dinheiro" className="bg-neutral-900">Dinheiro</option>
+                     <option value="Transferência" className="bg-neutral-900">Transferência</option>
+                     <option value="Outros" className="bg-neutral-900">Outros</option>
+                   </select>
+                </div>
+
+                <div>
+                   <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">Data/Hora da Operação</label>
+                   <input 
+                     type="datetime-local" 
+                     value={payData.paidAt} 
+                     onChange={(e) => setPayData({ ...payData, paidAt: e.target.value })}
+                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all text-sm"
+                   />
+                </div>
+
+                <div>
+                   <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">Notas Internas</label>
+                   <textarea 
+                     value={payData.notes} 
+                     onChange={(e) => setPayData({ ...payData, notes: e.target.value })}
+                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:border-emerald-500 font-medium transition-all text-sm min-h-[80px]"
+                     placeholder="Ex: Ref. bônus de performance..."
+                   />
+                </div>
+
+                <div className="pt-4">
+                  <div className="flex justify-between items-center mb-6 px-1">
+                     <span className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">Saldo Restante</span>
+                     <span className="text-lg font-black text-white font-mono">
+                       {formatCurrency(Math.max(0, (selectedCommission.commissionAmount - (selectedCommission.paidAmount || 0)) - payData.amount))}
+                     </span>
+                  </div>
+                  
+                  <button 
+                    onClick={handlePayCommission}
+                    disabled={saving}
+                    className="w-full h-14 bg-emerald-500 text-black font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-emerald-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-xl shadow-emerald-500/20"
+                  >
+                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <> <Check className="w-5 h-5" /> Confirmar Pagamento </>}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

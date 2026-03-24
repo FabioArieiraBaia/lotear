@@ -458,33 +458,56 @@ function handlePagarComissao($comissaoId) {
     requireAuth();
     $db = getDatabase();
     
-    $stmt = $db->prepare('UPDATE comissoes SET status = "pago", paidAt = datetime("now") WHERE id = ?');
-    $stmt->execute([$comissaoId]);
+    $data = json_decode(file_get_contents('php://input'), true);
+    $amountToPay = floatval($data['amount'] ?? 0);
+    $paymentMethod = $data['paymentMethod'] ?? 'PIX';
+    $notes = $data['notes'] ?? '';
+    $dateInput = $data['paidAt'] ?? null;
     
-    // Buscar dados da comissão para registrar pagamento
-    $stmtComissao = $db->prepare('
-        SELECT comissoes.*, corretores.name as corretorName, lotes.name as loteName
+    if ($amountToPay <= 0) jsonResponse(['error' => 'Valor inválido'], 400);
+
+    $paidAt = $dateInput ? str_replace('T', ' ', substr($dateInput, 0, 19)) : date('Y-m-d H:i:s');
+    
+    // Buscar comissão para calcular saldo
+    $stmtFind = $db->prepare('SELECT * FROM comissoes WHERE id = ?');
+    $stmtFind->execute([$comissaoId]);
+    $comissao = $stmtFind->fetch();
+    
+    if (!$comissao) jsonResponse(['error' => 'Comissão não encontrada'], 404);
+
+    $totalPaid = floatval($comissao['paidAmount'] ?? 0) + $amountToPay;
+    $newStatus = ($totalPaid >= $comissao['commissionAmount']) ? 'pago' : 'parcial';
+
+    $stmt = $db->prepare('UPDATE comissoes SET status = ?, paidAmount = ?, paidAt = ? WHERE id = ?');
+    $stmt->execute([$newStatus, $totalPaid, $paidAt, $comissaoId]);
+    
+    // Buscar dados do corretor/lote para o log de pagamento
+    $stmtMeta = $db->prepare('
+        SELECT corretores.name as corretorName, lotes.name as loteName
         FROM comissoes
         LEFT JOIN corretores ON comissoes.corretorId = corretores.id
         LEFT JOIN lotes ON comissoes.loteId = lotes.id
         WHERE comissoes.id = ?
     ');
-    $stmtComissao->execute([$comissaoId]);
-    $comissao = $stmtComissao->fetch();
+    $stmtMeta->execute([$comissaoId]);
+    $meta = $stmtMeta->fetch();
     
-    if ($comissao) {
-        // Registrar pagamento da comissão
-        $stmtPagamento = $db->prepare('
-            INSERT INTO pagamentos (loteId, corretorId, amount, type, paidAt, notes)
-            VALUES (?, ?, ?, "comissao", datetime("now"), ?)
-        ');
-        $stmtPagamento->execute([
-            $comissao['loteId'],
-            $comissao['corretorId'],
-            $comissao['commissionAmount'],
-            "Comissão paga para {$comissao['corretorName']} - Lote {$comissao['loteName']}"
-        ]);
-    }
+    $finalNotes = "Comissão ({$newStatus}) para {$meta['corretorName']} - Lote {$meta['loteName']}";
+    if ($notes) $finalNotes .= " | " . $notes;
+    
+    // Registrar entrada no histórico de pagamentos
+    $stmtPagamento = $db->prepare('
+        INSERT INTO pagamentos (loteId, corretorId, amount, type, paymentMethod, paidAt, notes)
+        VALUES (?, ?, ?, "comissao", ?, ?, ?)
+    ');
+    $stmtPagamento->execute([
+        $comissao['loteId'],
+        $comissao['corretorId'],
+        $amountToPay,
+        $paymentMethod,
+        $paidAt,
+        $finalNotes
+    ]);
     
     jsonResponse(['success' => true]);
 }

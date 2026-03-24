@@ -5,7 +5,10 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
-import { Loader2, ArrowLeft, Plus, Image as ImageIcon, MapPin, Maximize, Trash2, Check, X, Navigation, Save, Layers, DollarSign } from 'lucide-react';
+import { 
+  Loader2, ArrowLeft, Plus, Image as ImageIcon, MapPin, Maximize, 
+  Trash2, Check, X, Navigation, Save, Layers, DollarSign, MonitorPlay 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjs from 'pdfjs-dist';
 import { resolveUrl } from '../utils/url';
@@ -28,6 +31,14 @@ function GeomanControl({ onLoteCreate }: { onLoteCreate: (polygon: number[][]) =
 
   useEffect(() => {
     map.pm.setLang('pt_br');
+    map.pm.setGlobalOptions({
+      snappable: true,
+      snapDistance: 15,
+      allowSelfIntersection: false,
+      hintlineStyle: { color: '#10b981', dashArray: '5,5' },
+      templineStyle: { color: '#10b981' }
+    });
+
     map.pm.addControls({
       position: 'topleft',
       drawMarker: false,
@@ -128,11 +139,33 @@ export default function LoteamentoView() {
   const [lotes, setLotes] = useState<any[]>([]);
   const [corretores, setCorretores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // States corrigidos e fundidos
   const [activeLote, setActiveLote] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
   const [convertingPdf, setConvertingPdf] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [midias, setMidias] = useState<any[]>([]);
+  const [loadingMidia, setLoadingMidia] = useState(false);
+  const [youtubeInput, setYoutubeInput] = useState('');
+  const mapRef = useRef<L.Map | null>(null);
+
+  const startDrawing = () => {
+    if (mapRef.current) {
+      mapRef.current.pm.enableDraw('Polygon');
+      setIsDrawing(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    const onDrawEnd = () => setIsDrawing(false);
+    map.on('pm:drawend', onDrawEnd);
+    return () => { map.off('pm:drawend', onDrawEnd); };
+  }, [mapRef.current]);
 
   useEffect(() => {
     if (!id) return;
@@ -212,6 +245,79 @@ export default function LoteamentoView() {
     }
   }, [loteamento?.imageUrl]);
 
+  // Fetch midias when activeLote changes
+  useEffect(() => {
+    if (!activeLote?.id) {
+      setMidias([]);
+      return;
+    }
+    const fetchMidia = async () => {
+      setLoadingMidia(true);
+      try {
+        const res = await fetch(import.meta.env.BASE_URL + `api/lotes/${activeLote.id}/midia`);
+        if (res.ok) setMidias(await res.json());
+      } catch (err) { console.error(err); }
+      finally { setLoadingMidia(false); }
+    };
+    fetchMidia();
+  }, [activeLote?.id]);
+
+  const handleUploadMidia = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !activeLote) return;
+    const token = localStorage.getItem('adminToken');
+
+    const uploadFile = async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch(import.meta.env.BASE_URL + `api/lotes/${activeLote.id}/midia`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (res.ok) return await res.json();
+      throw new Error('Upload failed');
+    };
+
+    try {
+      const promises = Array.from(files).map(uploadFile);
+      const newItems = await Promise.all(promises);
+      setMidias(prev => [...newItems, ...prev]);
+    } catch (err) { alert('Erro no upload de mídia'); }
+    finally { e.target.value = ''; }
+  };
+
+  const handleAddYoutube = async () => {
+    if (!youtubeInput || !activeLote) return;
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch(import.meta.env.BASE_URL + `api/lotes/${activeLote.id}/midia`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ youtubeUrl: youtubeInput })
+      });
+      if (res.ok) {
+        const newItem = await res.json();
+        setMidias(prev => [newItem, ...prev]);
+        setYoutubeInput('');
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteMidia = async (midiaId: number) => {
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch(import.meta.env.BASE_URL + `api/midia/${midiaId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setMidias(prev => prev.filter(m => m.id !== midiaId));
+    } catch (err) { console.error(err); }
+  };
+
   const handleSaveLote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeLote || saving) return;
@@ -272,17 +378,6 @@ export default function LoteamentoView() {
     } catch (err) {
       console.error("Error saving lote:", err);
       setSaving(false);
-    }
-  };
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && activeLote) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setActiveLote({ ...activeLote, photoUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -437,11 +532,11 @@ export default function LoteamentoView() {
                   <select
                     value={activeLote.status}
                     onChange={(e) => setActiveLote({ ...activeLote, status: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:ring-emerald-500/50 focus:border-emerald-500 text-white transition-all font-medium"
+                    className="w-full px-4 py-3 bg-neutral-800 border border-white/10 rounded-2xl focus:ring-emerald-500/50 focus:border-emerald-500 text-white transition-all font-medium cursor-pointer"
                   >
-                    <option value="Disponível" className="bg-neutral-900">Disponível</option>
-                    <option value="Reservado" className="bg-neutral-900">Reservado</option>
-                    <option value="Vendido" className="bg-neutral-900">Vendido</option>
+                    <option value="Disponível">Disponível</option>
+                    <option value="Reservado">Reservado</option>
+                    <option value="Vendido">Vendido</option>
                   </select>
                 </div>
               </div>
@@ -510,11 +605,11 @@ export default function LoteamentoView() {
                               commissionRate: corretor ? corretor.commissionRate : activeLote.commissionRate
                             });
                           }}
-                          className="flex-1 px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-sm"
+                          className="flex-1 px-4 py-2.5 bg-neutral-800 border border-white/5 rounded-xl text-white text-sm cursor-pointer"
                         >
                           <option value="">Selecione...</option>
-                          {corretores.map((corretor) => (
-                            <option key={corretor.id} value={corretor.id} className="bg-neutral-900">
+                          {corretores.map((corretor: any) => (
+                            <option key={corretor.id} value={corretor.id}>
                               {corretor.name}
                             </option>
                           ))}
@@ -576,19 +671,69 @@ export default function LoteamentoView() {
               )}
 
               <div className="space-y-4">
-                <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Multimídia & Notas</label>
-                <div className="grid grid-cols-1 gap-4">
-                   <div className="aspect-video bg-white/[0.03] border border-white/5 rounded-3xl overflow-hidden group/photo relative cursor-pointer">
-                      {activeLote.photoUrl ? (
-                         <img src={resolveUrl(activeLote.photoUrl)} alt="Lote" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500" />
-                      ) : (
-                         <div className="w-full h-full flex flex-col items-center justify-center text-neutral-600">
-                            <ImageIcon className="w-8 h-8 mb-2 opacity-20" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Sem Foto</span>
-                         </div>
-                      )}
-                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={handlePhotoUpload} />
+                <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Galeria Master (Fotos & Vídeos)</label>
+                
+                <div className="grid grid-cols-3 gap-3">
+                   {/* Botão de Upload de Foto */}
+                   <label className="aspect-square bg-white/[0.03] border border-white/5 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-all group">
+                      <ImageIcon className="w-6 h-6 text-neutral-600 group-hover:text-emerald-500 transition-colors" />
+                      <span className="text-[8px] font-black uppercase text-neutral-600 mt-2">Add Foto</span>
+                      <input type="file" multiple className="hidden" accept="image/*" onChange={handleUploadMidia} />
+                   </label>
+
+                   {/* Botão de Add YouTube */}
+                   <div className="col-span-2 bg-white/[0.03] border border-white/5 rounded-2xl p-3 flex flex-col justify-center gap-2">
+                      <div className="flex gap-2">
+                         <input 
+                           type="text" 
+                           placeholder="LINK YOUTUBE..." 
+                           value={youtubeInput}
+                           onChange={(e) => setYoutubeInput(e.target.value)}
+                           className="flex-1 bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none focus:border-emerald-500/50"
+                         />
+                         <button 
+                           type="button" 
+                           onClick={handleAddYoutube}
+                           className="px-3 py-2 bg-emerald-500 text-black rounded-xl text-[9px] font-black uppercase"
+                         >
+                           Add
+                         </button>
+                      </div>
                    </div>
+
+                   {/* Grid de Itens da Galeria */}
+                   <AnimatePresence>
+                      {midias.map(m => (
+                         <motion.div 
+                           key={m.id}
+                           initial={{ opacity: 0, scale: 0.8 }}
+                           animate={{ opacity: 1, scale: 1 }}
+                           exit={{ opacity: 0, scale: 0.8 }}
+                           className="aspect-square rounded-2xl overflow-hidden bg-black border border-white/5 group/midia relative shadow-xl"
+                         >
+                            {m.type === 'image' ? (
+                               <img src={resolveUrl(m.url)} className="w-full h-full object-cover" alt="Midia" />
+                            ) : (
+                               <div className="w-full h-full flex flex-col items-center justify-center bg-red-500/5">
+                                  <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center mb-1">
+                                     <MonitorPlay className="w-4 h-4 text-red-500" />
+                                  </div>
+                                  <span className="text-[7px] font-black text-red-500 uppercase tracking-widest">Vídeo</span>
+                               </div>
+                            )}
+                            <button 
+                              type="button" 
+                              onClick={() => handleDeleteMidia(m.id)}
+                              className="absolute top-1 right-1 p-1.5 bg-black/80 text-white rounded-lg opacity-0 group-hover/midia:opacity-100 hover:bg-red-500 transition-all z-10"
+                            >
+                               <Trash2 className="w-3 h-3" />
+                            </button>
+                         </motion.div>
+                      ))}
+                   </AnimatePresence>
+                </div>
+
+                <div className="pt-2">
                    <textarea
                      value={activeLote.notes}
                      onChange={(e) => setActiveLote({ ...activeLote, notes: e.target.value })}
@@ -626,9 +771,17 @@ export default function LoteamentoView() {
                <Navigation className="w-10 h-10 text-emerald-500 relative z-10" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2 font-heading tracking-tight">Otimize a Gestão</h3>
-            <p className="text-neutral-500 text-sm max-w-[280px] leading-relaxed">Clique em um lote no mapa interativo ao lado para gerenciar vendas, pagamentos e fotos.</p>
+            <p className="text-neutral-500 text-sm max-w-[280px] leading-relaxed mb-8">Clique em um lote no mapa interativo ao lado para gerenciar vendas, pagamentos e fotos.</p>
             
-            <div className="mt-12 space-y-4 w-full">
+            <button 
+              onClick={startDrawing}
+              className="w-full h-14 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 group mb-8"
+            >
+               <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+               Desenhar Novo Lote
+            </button>
+
+            <div className="space-y-4 w-full">
               <h4 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest text-left px-2">Guia de Cores</h4>
               <div className="grid grid-cols-3 gap-2">
                  <div className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center gap-1">
@@ -656,9 +809,24 @@ export default function LoteamentoView() {
           bounds={IMAGE_BOUNDS} 
           maxZoom={4}
           minZoom={-2}
+          ref={(m) => { if (m) mapRef.current = m; }}
           className="w-full h-full"
           style={{ height: '100%', width: '100%' }}
         >
+          {isDrawing && (
+             <div className="absolute top-10 left-1/2 -translate-x-1/2 z-[2000] pointer-events-none">
+                <motion.div 
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  className="bg-black/80 backdrop-blur-xl border border-emerald-500/30 px-6 py-3 rounded-full flex items-center gap-4 text-white shadow-2xl"
+                >
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Modo Digitalização Ativo</span>
+                  <div className="h-4 w-px bg-white/10" />
+                  <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-widest">Clique no mapa para criar vértices • Esc para cancelar</span>
+                </motion.div>
+             </div>
+          )}
           {mapImageUrl && (
             <ImageOverlay
               url={resolveUrl(mapImageUrl)}
@@ -668,7 +836,7 @@ export default function LoteamentoView() {
           
           <GeomanControl onLoteCreate={handleCreateLote} />
           
-          {lotes.map((lote) => (
+          {lotes.map((lote: any) => (
             <EditablePolygon
               key={lote.id}
               lote={lote}

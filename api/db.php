@@ -29,6 +29,26 @@ function getDatabase() {
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             
+            -- Tabela de usuários (gestores e equipe)
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'vendedor',
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- Tabela de mídia dos lotes (fotos e vídeos YouTube)
+            CREATE TABLE IF NOT EXISTS lote_midia (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                loteId INTEGER NOT NULL,
+                type TEXT NOT NULL, -- 'image', 'youtube'
+                url TEXT NOT NULL,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(loteId) REFERENCES lotes(id) ON DELETE CASCADE
+            );
+            
             CREATE TABLE IF NOT EXISTS lotes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 loteamentoId INTEGER,
@@ -69,6 +89,7 @@ function getDatabase() {
             ['lotes', 'saleDate', 'DATE'],
             ['lotes', 'totalPaid', 'REAL DEFAULT 0'],
             ['lotes', 'commissionRate', 'REAL'],
+            ['comissoes', 'paidAmount', 'REAL DEFAULT 0'],
         ];
         
         foreach ($columns as [$table, $column, $definition]) {
@@ -150,6 +171,12 @@ function getDatabase() {
                 token TEXT,
                 active INTEGER DEFAULT 1,
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS configuracoes (
+                chave TEXT PRIMARY KEY,
+                valor TEXT,
+                updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         ");
         

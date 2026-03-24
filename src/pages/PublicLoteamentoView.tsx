@@ -7,7 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import { 
   Loader2, ArrowLeft, Image as ImageIcon, MapPin, Maximize, 
   Info, CheckCircle2, Navigation, X, MessageCircle, Phone, 
-  Clock, Shield, Sparkles, Zap, Globe, Target
+  Clock, Shield, Sparkles, Zap, Globe, Target, MonitorPlay
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjs from 'pdfjs-dist';
@@ -78,6 +78,8 @@ export default function PublicLoteamentoView() {
   const [leadSuccess, setLeadSuccess] = useState(false);
   const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
   const [convertingPdf, setConvertingPdf] = useState(false);
+  const [midias, setMidias] = useState<any[]>([]);
+  const [loadingMidia, setLoadingMidia] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -127,6 +129,22 @@ export default function PublicLoteamentoView() {
       setMapImageUrl(loteamento.imageUrl);
     }
   }, [loteamento?.imageUrl]);
+
+  // Fetch midias when activeLote changes
+  useEffect(() => {
+    if (!activeLote?.id) {
+      setMidias([]);
+      return;
+    }
+    (async () => {
+      setLoadingMidia(true);
+      try {
+        const res = await fetch(import.meta.env.BASE_URL + `api/lotes/${activeLote.id}/midia`);
+        if (res.ok) setMidias(await res.json());
+      } catch (err) { console.error(err); }
+      finally { setLoadingMidia(false); }
+    })();
+  }, [activeLote?.id]);
 
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,7 +230,7 @@ export default function PublicLoteamentoView() {
       </div>
 
       {/* Info HUD Side Panel */}
-      <div className="absolute bottom-0 left-0 right-0 md:top-0 md:bottom-auto md:right-0 md:left-auto h-auto md:h-full p-6 z-[1000] pointer-events-none flex flex-col justify-end md:justify-start w-full md:w-[450px]">
+      <div className="absolute inset-y-0 right-0 z-[1000] pointer-events-none flex flex-col justify-center items-end p-6 w-full md:w-[480px]">
         <AnimatePresence mode="wait">
           {displayLote ? (
             <motion.div
@@ -220,9 +238,9 @@ export default function PublicLoteamentoView() {
               initial={{ opacity: 0, x: 50, filter: 'blur(10px)' }}
               animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
               exit={{ opacity: 0, x: 50, filter: 'blur(10px)' }}
-              className="pointer-events-auto bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-1 shadow-[0_0_50px_rgba(0,0,0,0.5)] text-white overflow-hidden relative group sidebar-glow"
+              className="pointer-events-auto bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-1 shadow-[0_0_80px_rgba(0,0,0,0.8)] text-white overflow-y-auto max-h-[85vh] w-full relative group sidebar-glow custom-scrollbar"
             >
-              <div className="p-8 space-y-8">
+               <div className="p-8 space-y-8 flex flex-col">
                  <div className="flex justify-between items-start">
                     <div>
                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${getStatusGradient(displayLote.status)} border mb-4 shadow-lg`}>
@@ -238,18 +256,35 @@ export default function PublicLoteamentoView() {
                        </div>
                     )}
                  </div>
-
-                 <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl">
-                    {displayLote.photoUrl ? (
-                       <img src={resolveUrl(displayLote.photoUrl)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-60 group-hover:opacity-100" />
-                    ) : (
-                       <div className="flex flex-col items-center justify-center h-full text-neutral-800">
-                          <ImageIcon className="w-12 h-12 mb-2" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">Sem Registro Fotográfico</span>
-                       </div>
-                    )}
-                    <motion.div initial={{ top: '-10%' }} animate={{ top: '110%' }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="absolute left-0 w-full h-px bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)] z-10" />
-                 </div>
+                  <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl flex flex-col">
+                     {midias.length > 0 ? (
+                        <div className="w-full h-full flex gap-2 overflow-x-auto p-2 custom-scrollbar scroll-smooth snap-x">
+                           {midias.map((m, idx) => (
+                              <div key={m.id} className="flex-shrink-0 w-full h-full snap-center relative group/img">
+                                 {m.type === 'image' ? (
+                                    <img src={resolveUrl(m.url)} className="w-full h-full object-cover rounded-2xl" alt={`Slide ${idx}`} />
+                                 ) : (
+                                    <div className="w-full h-full bg-red-500/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer" onClick={() => window.open(m.url, '_blank')}>
+                                       <MonitorPlay className="w-12 h-12 text-red-500 mb-2" />
+                                       <span className="text-[10px] font-black text-red-500 uppercase">Assistir Tour Virtual</span>
+                                    </div>
+                                 )}
+                              </div>
+                           ))}
+                        </div>
+                     ) : (
+                        displayLote.photoUrl ? (
+                           <img src={resolveUrl(displayLote.photoUrl)} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                        ) : (
+                           <div className="flex flex-col items-center justify-center h-full text-neutral-800">
+                              <ImageIcon className="w-12 h-12 mb-2" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">Sem Registro Fotográfico</span>
+                           </div>
+                        )
+                     )}
+                     <motion.div initial={{ top: '-10%' }} animate={{ top: '110%' }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="absolute left-0 w-full h-px bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)] z-10 pointer-events-none" />
+                     <Link to={`/lote/${displayLote.id}`} className="absolute inset-0 z-20"></Link>
+                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white/5 p-5 rounded-[1.5rem] border border-white/5">
@@ -266,12 +301,12 @@ export default function PublicLoteamentoView() {
 
                  <div className="space-y-4">
                     {displayLote.status === 'Disponível' ? (
-                       <button 
-                         onClick={() => setShowLeadModal(true)}
-                         className="w-full py-5 bg-emerald-500 text-black font-black uppercase text-xs tracking-[0.3em] rounded-2xl hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
+                       <Link 
+                         to={`/lote/${displayLote.id}`}
+                         className="w-full py-5 bg-emerald-500 text-black font-black uppercase text-xs tracking-[0.3em] rounded-2xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
                        >
-                          <Zap className="w-5 h-5 fill-black" /> Tenho Interesse
-                       </button>
+                          <Zap className="w-5 h-5 fill-black" /> Saber Mais & Fotos
+                       </Link>
                     ) : (
                        <div className="w-full py-5 bg-white/5 border border-white/10 text-neutral-600 font-black uppercase text-xs tracking-[0.3em] rounded-2xl text-center">
                           Unidade Indisponível

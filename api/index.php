@@ -31,6 +31,7 @@ require_once __DIR__ . '/leads.php';
 require_once __DIR__ . '/corretores.php';
 require_once __DIR__ . '/financeiro.php';
 require_once __DIR__ . '/usuarios.php';
+require_once __DIR__ . '/configuracoes.php';
 
 // Parse the request path
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -82,6 +83,11 @@ try {
     elseif ($path === '/api/lotes' && $method === 'GET') {
         handleGetAllLotes();
     }
+
+    // GET /api/lotes/:id
+    elseif (preg_match('#^/api/lotes/(\d+)$#', $path, $matches) && $method === 'GET') {
+        handleGetLote((int)$matches[1]);
+    }
     
     // POST /api/lotes
     elseif ($path === '/api/lotes' && $method === 'POST') {
@@ -96,6 +102,21 @@ try {
     // DELETE /api/lotes/:id
     elseif (preg_match('#^/api/lotes/(\d+)$#', $path, $matches) && $method === 'DELETE') {
         handleDeleteLote((int)$matches[1]);
+    }
+
+    // GET /api/lotes/:id/midia
+    elseif (preg_match('#^/api/lotes/(\d+)/midia$#', $path, $matches) && $method === 'GET') {
+        handleGetLoteMidia((int)$matches[1]);
+    }
+
+    // POST /api/lotes/:id/midia
+    elseif (preg_match('#^/api/lotes/(\d+)/midia$#', $path, $matches) && $method === 'POST') {
+        handleUploadLoteMidia((int)$matches[1]);
+    }
+
+    // DELETE /api/midia/:id
+    elseif (preg_match('#^/api/midia/(\d+)$#', $path, $matches) && $method === 'DELETE') {
+        handleDeleteMidia((int)$matches[1]);
     }
     
     // GET /api/leads
@@ -113,6 +134,17 @@ try {
         handleUpdateLead((int)$matches[1]);
     }
     
+    
+    // GET /api/configuracoes
+    elseif ($path === '/api/configuracoes' && $method === 'GET') {
+        handleGetConfig(getDatabase());
+    }
+
+    // POST /api/configuracoes
+    elseif ($path === '/api/configuracoes' && $method === 'POST') {
+        handleUpdateConfig(getDatabase());
+    }
+
     // ==================== CORRETORES ====================
     
     // GET /api/corretores

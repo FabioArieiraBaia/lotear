@@ -13,13 +13,15 @@ import Contatos from './pages/Contatos';
 import Corretores from './pages/Corretores';
 import Usuarios from './pages/Usuarios';
 import Apresentacao from './pages/Apresentacao';
+import Configuracoes from './pages/Configuracoes';
+import LoteDetail from './pages/LoteDetail';
 import { Map, LogOut, ShieldAlert } from 'lucide-react';
 
 function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isPublicView = location.pathname.startsWith('/loteamento/');
+  const isPublicView = location.pathname.startsWith('/loteamento/') || location.pathname.startsWith('/lote/');
   const hasToken = !!localStorage.getItem('adminToken');
 
   const handleLogout = () => {
@@ -77,6 +79,7 @@ export default function App() {
             {/* Public Routes */}
             <Route path="/" element={<PublicHome />} />
             <Route path="/loteamento/:id" element={<PublicLoteamentoView />} />
+            <Route path="/lote/:id" element={<LoteDetail />} />
             
             {/* Admin Login */}
             <Route path="/admin/login" element={<AdminLogin />} />
@@ -90,6 +93,7 @@ export default function App() {
               <Route path="corretores" element={<Corretores />} />
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="apresentacao" element={<Apresentacao />} />
+              <Route path="configuracoes" element={<Configuracoes />} />
               <Route path="new" element={<NewLoteamento />} />
               <Route path="loteamento/:id" element={<LoteamentoView />} />
             </Route>

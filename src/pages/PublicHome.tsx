@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { resolveUrl } from '../utils/url';
 import { Link } from 'react-router-dom';
-import { 
-  Map, Calendar, Loader2, ArrowRight, MapPin, MessageCircle, 
-  ChevronLeft, ChevronRight, Layout, Zap, ShieldCheck, Globe
+import {
+  Map, Calendar, Loader2, ArrowRight, MapPin, MessageCircle,
+  ChevronLeft, ChevronRight, Layout, Zap, ShieldCheck, Globe,
+  Sparkles, TrendingUp, Building, ArrowUpRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import PdfThumbnail from '../components/PdfThumbnail';
 
 export default function PublicHome() {
   const [loteamentos, setLoteamentos] = useState<any[]>([]);
@@ -15,6 +17,7 @@ export default function PublicHome() {
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [allLotes, setAllLotes] = useState<any[]>([]);
+  const [config, setConfig] = useState<any>({});
 
   useEffect(() => {
     fetch(import.meta.env.BASE_URL + 'api/loteamentos')
@@ -22,7 +25,7 @@ export default function PublicHome() {
       .then(data => {
         setLoteamentos(data);
         setLoading(false);
-        
+
         data.forEach((loteamento: any) => {
           fetch(import.meta.env.BASE_URL + `api/loteamentos/${loteamento.id}/lotes`)
             .then(res => res.json())
@@ -44,158 +47,230 @@ export default function PublicHome() {
         console.error("Error fetching loteamentos:", err);
         setLoading(false);
       });
+
+    fetch(import.meta.env.BASE_URL + 'api/configuracoes')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error("Error fetching config:", err));
   }, []);
 
   useEffect(() => {
     if (allLotes.length === 0) return;
     const interval = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % allLotes.length);
-    }, 6000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [allLotes.length]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-950">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-6">
         <div className="relative">
-          <div className="w-20 h-20 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="w-24 h-24 border border-white/5 rounded-full bg-emerald-500/5 flex items-center justify-center">
+             <div className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          </div>
           <div className="absolute inset-0 flex items-center justify-center">
-             <Globe className="w-8 h-8 text-emerald-500 animate-pulse" />
+             <Globe className="w-6 h-6 text-emerald-500 animate-pulse" />
           </div>
         </div>
+        <p className="text-emerald-500/50 text-[10px] font-black uppercase tracking-[0.4em] font-mono">Synchronizing Global Inventory</p>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#050505] font-sans selection:bg-emerald-500/30">
-      {/* Background Map Cinematic */}
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none grayscale">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#020202] font-sans selection:bg-emerald-500/30">
+
+      {/* BACKGROUND AMBIENT LAYER */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+         <div className="absolute top-[-20%] left-[-10%] w-[1000px] h-[1000px] bg-emerald-500/10 blur-[180px] rounded-full opacity-40 animate-pulse" />
+         <div className="absolute bottom-[-10%] right-[-10%] w-[800px] h-[800px] bg-blue-500/10 blur-[150px] rounded-full opacity-30" />
+         <div className="absolute top-[40%] left-[60%] w-[400px] h-[400px] bg-purple-500/5 blur-[120px] rounded-full" />
+      </div>
+
+      {/* BACKGROUND MAP (DIMMED) */}
+      <div className="absolute inset-0 z-1 opacity-[0.08] pointer-events-none grayscale brightness-50">
         <MapContainer center={[-15.78, -47.92]} zoom={5} zoomControl={false} attributionControl={false} className="w-full h-full bg-black">
           <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
         </MapContainer>
-        <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)] z-10" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black z-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
       </div>
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto p-6 md:p-12 min-h-screen flex flex-col">
-        {/* Glow Effects */}
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-500/5 blur-[150px] rounded-full pointer-events-none" />
+      <div className="relative z-10 w-full max-w-[1400px] mx-auto p-8 md:p-16 min-h-screen flex flex-col">
 
-        {/* Hero Section */}
-        <header className="flex flex-col md:flex-row items-center justify-between mb-20">
-           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="mb-8 md:mb-0">
-              <div className="flex items-center gap-3 mb-6 bg-white/5 border border-white/10 px-4 py-2 rounded-full w-fit backdrop-blur-xl">
-                 <Zap className="w-4 h-4 text-emerald-500 fill-emerald-500" />
-                 <span className="text-[10px] text-white font-black uppercase tracking-[0.3em]">Empreendimentos Exclusivos</span>
+        {/* HERO SECTION 2027 */}
+        <section className="flex flex-col lg:flex-row items-center justify-between pt-12 pb-32 gap-20">
+           <motion.div
+             initial={{ opacity: 0, y: 50 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 1, ease: [0.19, 1, 0.22, 1] }}
+             className="flex-1"
+           >
+              <div className="inline-flex items-center gap-3 mb-8 bg-white/5 border border-white/10 px-6 py-2.5 rounded-full backdrop-blur-3xl">
+                 <Sparkles className="w-4 h-4 text-emerald-400 fill-emerald-400" />
+                 <span className="text-[10px] text-white font-black uppercase tracking-[0.4em]">Próxima Geração de Loteamentos</span>
               </div>
-              <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 font-heading tracking-tight leading-[1.1]">
-                Encontre o seu <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-500 to-cyan-500">Espaço Ideal</span>
-              </h1>
-              <p className="text-neutral-400 text-lg md:text-xl max-w-xl leading-relaxed font-medium">
-                Sistemas de geoprocessamento em tempo real para visualização de plantas e aquisição inteligente de lotes.
-              </p>
-           </motion.div>
 
-           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative group">
-              <div className="absolute inset-0 bg-emerald-500/20 blur-[60px] rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative w-72 h-72 md:w-96 md:h-96 rounded-[3rem] bg-neutral-900 border border-white/10 overflow-hidden shadow-2xl sidebar-glow">
-                 <AnimatePresence mode="wait">
-                   {allLotes.length > 0 ? (
-                     <motion.img 
-                        key={currentSlide} 
-                        initial={{ opacity: 0, scale: 1.1 }} 
-                        animate={{ opacity: 1, scale: 1 }} 
-                        exit={{ opacity: 0 }} 
-                        transition={{ duration: 1 }}
-                        src={allLotes[currentSlide].photoUrl} 
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                        alt="Background"
-                     />
-                   ) : (
-                     <div className="flex items-center justify-center h-full">
-                        <Map className="w-16 h-16 text-neutral-800" />
-                     </div>
-                   )}
-                 </AnimatePresence>
-                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
-                 <div className="absolute bottom-8 left-8">
-                    <p className="text-emerald-400 font-black text-[10px] uppercase tracking-widest mb-2">Visão Aérea</p>
-                    <div className="flex items-center gap-2">
-                       <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                       <span className="text-white font-bold text-lg">100% Verificado</span>
+              <h1 className="text-7xl md:text-9xl font-bold text-white mb-8 font-heading tracking-tighter leading-[0.9] bg-gradient-to-b from-white via-white to-white/30 bg-clip-text text-transparent">
+                Viva sua <br />
+                <span className="text-emerald-500 italic">Liberdade.</span>
+              </h1>
+
+              <p className="text-neutral-400 text-xl md:text-2xl max-w-xl leading-relaxed font-medium mb-12">
+                Experiência imersiva em masterplans digitais. Onde seus sonhos encontram o solo perfeito.
+              </p>
+
+              <div className="flex flex-wrap gap-6">
+                 <button 
+                    onClick={() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="px-12 py-6 bg-emerald-500 text-black font-black uppercase tracking-[0.2em] text-xs rounded-3xl hover:bg-white hover:scale-105 transition-all shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex items-center gap-3 group"
+                  >
+                    Explorar Agora <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                 </button>
+                 <div className="flex items-center gap-6 px-8 py-4 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl">
+                    <div className="flex -space-x-3">
+                       {[1,2,3].map(i => (
+                         <div key={i} className="w-10 h-10 rounded-full border-2 border-black bg-neutral-800 flex items-center justify-center text-[10px] font-bold text-white">
+                            +
+                         </div>
+                       ))}
                     </div>
+                    <p className="text-xs text-neutral-400 font-bold uppercase tracking-widest"><span className="text-white">+500</span> Vizinhos felizes</p>
                  </div>
               </div>
            </motion.div>
-        </header>
 
-        {/* Loteamentos Cards */}
-        <section className="relative">
-           <div className="flex items-end justify-between mb-12">
-              <div>
-                 <h2 className="text-3xl font-bold text-white font-heading tracking-tight">Empreendimentos <span className="text-emerald-500">Disponíveis</span></h2>
-                 <p className="text-neutral-500 font-medium">Explore as plantas interativas e escolha seu lote</p>
+           {/* VISUAL SHOWCASE */}
+           <motion.div
+             initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+             animate={{ opacity: 1, scale: 1, rotate: 0 }}
+             transition={{ duration: 1.2, ease: [0.19, 1, 0.22, 1] }}
+             className="relative w-full max-w-[500px] aspect-square lg:aspect-[4/5]"
+           >
+              <div className="absolute inset-0 bg-emerald-500/20 blur-[100px] rounded-full mix-blend-screen animate-pulse" />
+              <div className="relative h-full w-full rounded-[4rem] overflow-hidden border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] sidebar-glow group">
+                 <AnimatePresence mode="wait">
+                    {allLotes.length > 0 ? (
+                      <motion.img
+                        key={currentSlide}
+                        initial={{ opacity: 0, scale: 1.2, filter: 'blur(20px)' }}
+                        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, scale: 0.9, filter: 'blur(20px)' }}
+                        transition={{ duration: 1.5, ease: [0.19, 1, 0.22, 1] }}
+                        src={allLotes[currentSlide].photoUrl}
+                        className="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-1000"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-neutral-900 flex items-center justify-center">
+                         <Building className="w-20 h-20 text-neutral-800" />
+                      </div>
+                    )}
+                 </AnimatePresence>
+
+                 {/* HUD OVERLAY ON IMAGE */}
+                 <div className="absolute inset-x-0 bottom-0 p-10 bg-gradient-to-t from-black via-black/40 to-transparent">
+                    <div className="flex items-center gap-3 mb-4">
+                       <div className="px-3 py-1 rounded-lg bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest">
+                          Destaque
+                       </div>
+                    </div>
+                    <h3 className="text-3xl font-bold text-white mb-2 font-heading tracking-tight">
+                       {allLotes[currentSlide]?.loteName || 'Carregando...'}
+                    </h3>
+                    <p className="text-white/50 text-[11px] uppercase font-black tracking-widest mb-6">Em {allLotes[currentSlide]?.loteamentoName}</p>
+
+                    <Link
+                      to={`/loteamento/${allLotes[currentSlide]?.loteamentoId}`}
+                      className="inline-flex items-center gap-3 text-emerald-400 font-bold text-xs uppercase tracking-widest hover:text-white transition-colors"
+                    >
+                       Ver Mapa Dinâmico <ArrowUpRight className="w-4 h-4" />
+                    </Link>
+                 </div>
               </div>
-              <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/50 to-transparent mx-8 mb-4 hidden lg:block" />
+           </motion.div>
+        </section>
+
+        {/* LISTAGEM DE EMPREENDIMENTOS */}
+        <section id="inventory" className="relative pt-20">
+           <div className="flex flex-col md:flex-row items-end justify-between mb-20 gap-8">
+              <div className="flex-1">
+                 <h2 className="text-5xl font-bold text-white font-heading tracking-tighter mb-4 leading-none">Empreendimentos <br /><span className="text-emerald-500">Exclusivos</span></h2>
+                 <p className="text-neutral-500 font-medium text-lg max-w-md italic">Tecnologia avançada para você escolher onde construir sua história.</p>
+              </div>
+              <div className="flex items-center gap-12 text-[10px] text-white/30 uppercase font-black tracking-[0.4em]">
+                 <div className="flex flex-col items-end">
+                    <span>Total Lotes</span>
+                    <span className="text-2xl text-white font-mono mt-2">{loteamentos.length}</span>
+                 </div>
+                 <div className="w-px h-12 bg-white/10" />
+                 <div className="flex flex-col items-end">
+                    <span>Disponíveis</span>
+                    <span className="text-2xl text-emerald-500 font-mono mt-2">{Object.values(lotesCounts).reduce((acc: number, c: any) => acc + (c.disponiveis || 0), 0)}</span>
+                 </div>
+              </div>
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
               {loteamentos.map((lot, idx) => (
-                <motion.div 
+                <motion.div
                   key={lot.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1, duration: 0.8 }}
                 >
                   <Link
                     to={`/loteamento/${lot.id}`}
-                    className="group block bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:bg-white/[0.06] hover:border-emerald-500/30 hover:shadow-[0_0_50px_rgba(16,185,129,0.15)] relative sidebar-glow"
+                    className="group flex flex-col h-full bg-white/[0.02] backdrop-blur-3xl border border-white/5 rounded-[3.5rem] overflow-hidden transition-all duration-700 hover:bg-white/[0.05] hover:border-emerald-500/20 hover:shadow-[0_40px_100px_rgba(0,0,0,0.5)] relative"
                   >
-                    <div className="aspect-[16/10] relative overflow-hidden bg-neutral-900">
+                    <div className="aspect-[16/11] relative overflow-hidden bg-neutral-900 shadow-inner">
                        {lot.imageUrl ? (
-                         <img src={resolveUrl(lot.imageUrl)} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700 opacity-60 group-hover:opacity-100" alt={lot.name} />
+                         lot.imageUrl.toLowerCase().endsWith('.pdf') ? (
+                           <PdfThumbnail
+                             url={resolveUrl(lot.imageUrl)}
+                             alt={lot.name}
+                             scale={1.0}
+                             className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-[2000ms] opacity-60 group-hover:opacity-100"
+                           />
+                         ) : (
+                           <img src={resolveUrl(lot.imageUrl)} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-[2000ms] opacity-60 group-hover:opacity-100" alt={lot.name} />
+                         )
                        ) : (
-                         <div className="w-full h-full flex items-center justify-center text-neutral-800"><Map className="w-12 h-12" /></div>
+                         <div className="w-full h-full flex items-center justify-center text-neutral-800"><Map className="w-16 h-16 opacity-20" /></div>
                        )}
-                       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-                       <div className="absolute top-6 left-6 flex gap-2">
-                          <span className="bg-emerald-500 text-black px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-xl">Ativo</span>
+
+                       <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent opacity-80" />
+
+                       {/* BADGE ON IMAGE */}
+                       <div className="absolute bottom-6 right-8">
+                          <div className="w-14 h-14 rounded-2xl bg-black/60 backdrop-blur-3xl border border-white/10 flex items-center justify-center text-emerald-500 shadow-2xl group-hover:rotate-12 transition-transform">
+                             <ArrowUpRight className="w-7 h-7" />
+                          </div>
                        </div>
                     </div>
 
-                    <div className="p-8">
-                       <div className="flex justify-between items-start mb-6">
-                          <div>
-                             <h3 className="text-2xl font-bold text-white font-heading tracking-tight mb-1 group-hover:text-emerald-400 transition-colors uppercase">{lot.name}</h3>
-                             <div className="flex items-center gap-2 text-neutral-500">
-                                <MapPin className="w-3.5 h-3.5" />
-                                <span className="text-xs font-bold uppercase tracking-widest">Planta Interativa</span>
-                             </div>
+                    <div className="p-10 flex flex-col flex-1">
+                       <h3 className="text-3xl font-bold text-white font-heading tracking-tight mb-6 group-hover:text-emerald-400 transition-colors">{lot.name}</h3>
+
+                       <div className="grid grid-cols-2 gap-4 mb-10">
+                          <div className="bg-white/5 rounded-3xl p-6 border border-white/5 group-hover:bg-emerald-500/5 group-hover:border-emerald-500/10 transition-colors">
+                             <p className="text-[9px] text-neutral-600 font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <MapPin className="w-3 h-3" /> Status
+                             </p>
+                             <p className="text-emerald-400 font-bold text-lg uppercase tracking-widest">Ativo</p>
                           </div>
-                          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 transition-transform group-hover:rotate-45">
-                             <ArrowRight className="w-6 h-6 text-emerald-500" />
+                          <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
+                             <p className="text-[9px] text-neutral-600 font-black uppercase tracking-widest mb-2">Unidades</p>
+                             <p className="text-white font-mono font-bold text-2xl">{lotesCounts[lot.id]?.disponiveis || 0}<span className="text-[10px] text-neutral-500 ml-1">/{lotesCounts[lot.id]?.total || 0}</span></p>
                           </div>
                        </div>
 
-                       {lotesCounts[lot.id] && (
-                          <div className="grid grid-cols-2 gap-3 mb-8">
-                             <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-3">
-                                <p className="text-[9px] text-emerald-500/70 font-black uppercase tracking-widest mb-1.5">Disponíveis</p>
-                                <p className="text-xl font-bold text-white font-heading leading-none">{lotesCounts[lot.id].disponiveis}</p>
-                             </div>
-                             <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-                                <p className="text-[9px] text-neutral-600 font-black uppercase tracking-widest mb-1.5">Unidades Totais</p>
-                                <p className="text-xl font-bold text-white font-heading leading-none">{lotesCounts[lot.id].total}</p>
-                             </div>
+                       <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-8">
+                          <div className="flex items-center gap-2">
+                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                             <span className="text-[10px] text-white/40 font-black uppercase tracking-widest">Masterplan Digital</span>
                           </div>
-                       )}
-
-                       <div className="flex items-center justify-between text-[10px] text-neutral-600 font-black uppercase tracking-[0.2em] pt-6 border-t border-white/5">
-                          <span>{new Date(lot.createdAt).toLocaleDateString()}</span>
-                          <span className="text-emerald-500/50">Explorar Unidades</span>
+                          <span className="text-white font-bold text-xs group-hover:translate-x-1 transition-transform">Explorar &rarr;</span>
                        </div>
                     </div>
                   </Link>
@@ -204,16 +279,28 @@ export default function PublicHome() {
            </div>
         </section>
 
-        {/* Floating Call to Action */}
-        <div className="mt-auto pt-20 pb-10 flex flex-col items-center">
-           <p className="text-neutral-500 text-sm font-bold uppercase tracking-[0.4em] mb-4">Interessado em negociar?</p>
-           <a 
-              href="https://wa.me/5500000000000" 
-              className="px-12 py-5 bg-white text-black font-black uppercase text-xs tracking-[0.3em] rounded-full hover:bg-emerald-500 hover:text-black hover:scale-105 active:scale-95 transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)] flex items-center gap-4"
-           >
-              <MessageCircle className="w-5 h-5" /> Falar com Especialista
-           </a>
-        </div>
+        {/* FOOTER CALL TO ACTION 2027 */}
+        <section className="mt-40 mb-20">
+           <div className="relative p-20 rounded-[4rem] bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent border border-white/10 overflow-hidden text-center sidebar-glow">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2" />
+
+              <div className="relative z-10 max-w-2xl mx-auto">
+                 <h2 className="text-5xl md:text-6xl font-bold text-white font-heading tracking-tighter mb-8 leading-none">Interessado em negociar <br /><span className="text-emerald-500">direto da fonte?</span></h2>
+                 <p className="text-neutral-400 text-lg mb-12 font-medium">Nossos corretores estão prontos para oferecer condições exclusivas usando geoprocessamento inteligente.</p>
+
+                 <a
+                    href={`https://wa.me/${config.whatsapp || '5500000000000'}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-4 px-16 py-7 bg-white text-black rounded-full font-black uppercase text-xs tracking-[0.3em] hover:bg-emerald-500 hover:scale-105 active:scale-95 transition-all shadow-2xl"
+                 >
+                    <MessageCircle className="w-6 h-6 fill-black" /> Falar com Especialista
+                 </a>
+              </div>
+           </div>
+        </section>
+
       </div>
     </div>
   );

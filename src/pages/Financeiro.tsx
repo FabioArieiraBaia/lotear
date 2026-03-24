@@ -5,6 +5,8 @@ import {
   ChevronUp, X, Check, Wallet, Building, Search, Filter, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LoteamentoQuickView from '../components/QuickView';
+import { Link } from 'react-router-dom';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -65,7 +67,7 @@ export default function Financeiro() {
   const [activeTab, setActiveTab] = useState<'vendas' | 'parcelas' | 'pagamentos'>('vendas');
   const [selectedParcela, setSelectedParcela] = useState<Parcela | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentOverride, setPaymentOverride] = useState<string | null>(null); // null = use computed
   const [paymentMethod, setPaymentMethod] = useState('pix');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [juros, setJuros] = useState('');
@@ -73,11 +75,19 @@ export default function Financeiro() {
   const [desconto, setDesconto] = useState('');
   const [forceQuitado, setForceQuitado] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [isAntecipado, setIsAntecipado] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // valorFinal: computed automatically from juros/desconto as PERCENTAGE
+  const valorFinalCalculado = selectedParcela
+    ? (selectedParcela.amount || 0) * (1 + (parseFloat(juros || '0') / 100)) - 
+      ((selectedParcela.amount || 0) * (parseFloat(desconto || '0') / 100))
+    : 0;
+  const valorFinal = paymentOverride !== null ? parseFloat(paymentOverride) || 0 : valorFinalCalculado;
 
   const fetchData = async () => {
     const token = localStorage.getItem('adminToken');
@@ -130,7 +140,7 @@ export default function Financeiro() {
         body: JSON.stringify({
           parcelaId: selectedParcela.id,
           loteId: selectedParcela.loteId,
-          amount: parseFloat(paymentAmount) || selectedParcela.amount,
+          amount: valorFinal,
           juros: parseFloat(juros) || 0,
           multa: parseFloat(multa) || 0,
           desconto: parseFloat(desconto) || 0,
@@ -143,12 +153,13 @@ export default function Financeiro() {
       if (res.ok) {
         setShowPaymentModal(false);
         setSelectedParcela(null);
-        setPaymentAmount('');
+        setPaymentOverride(null);
         setPaymentNotes('');
         setJuros('');
         setMulta('');
         setDesconto('');
         setForceQuitado(false);
+        setIsAntecipado(false);
         fetchData();
       }
     } catch (err) {
@@ -363,7 +374,13 @@ export default function Financeiro() {
                           className="group hover:bg-white/5 transition-all duration-300"
                         >
                           <td className="px-6 py-5 rounded-l-[1.5rem] font-bold text-white group-hover:text-emerald-400 transition-colors">{venda.loteName}</td>
-                          <td className="px-6 py-5 text-neutral-400 text-sm font-medium">{venda.loteamentoName}</td>
+                          <td className="px-6 py-5 text-neutral-400 text-sm font-medium">
+                            <LoteamentoQuickView id={venda.loteamentoId}>
+                              <Link to={`/admin/loteamento/${venda.loteamentoId}`} className="hover:text-emerald-400 transition-colors">
+                                {venda.loteamentoName}
+                              </Link>
+                            </LoteamentoQuickView>
+                          </td>
                           <td className="px-6 py-5">
                              <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 flex items-center justify-center text-[10px] font-bold text-emerald-500 border border-emerald-500/10">
@@ -415,7 +432,7 @@ export default function Financeiro() {
                 </div>
               </div>
               
-              <div className="overflow-x-auto custom-scrollbar">
+              <div className="w-full">
                 <table className="w-full text-left border-separate border-spacing-y-2">
                   <thead>
                     <tr className="text-neutral-500 text-[10px] uppercase tracking-widest font-bold">
@@ -445,7 +462,11 @@ export default function Financeiro() {
                           </td>
                           <td className="px-6 py-5">
                              <div className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors uppercase">{parcela.loteName}</div>
-                             <div className="text-[10px] text-neutral-500 font-medium">{parcela.loteamentoName}</div>
+                             <LoteamentoQuickView id={parcela.loteamentoId}>
+                                <Link to={`/admin/loteamento/${parcela.loteamentoId}`} className="text-[10px] text-neutral-500 font-medium hover:text-emerald-400 transition-colors">
+                                  {parcela.loteamentoName}
+                                </Link>
+                             </LoteamentoQuickView>
                           </td>
                           <td className="px-6 py-5">
                              <div className="text-emerald-400 font-bold text-sm">{parcela.buyerName}</div>
@@ -467,7 +488,10 @@ export default function Financeiro() {
                             <button
                               onClick={() => {
                                 setSelectedParcela(parcela);
-                                setPaymentAmount(parcela.amount.toString());
+                                setPaymentOverride(null);
+                                setJuros('');
+                                setMulta('');
+                                setDesconto('');
                                 setShowPaymentModal(true);
                               }}
                               className="px-4 py-2 bg-emerald-500 text-black rounded-xl hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20"
@@ -499,7 +523,7 @@ export default function Financeiro() {
                 </div>
               </div>
               
-              <div className="overflow-x-auto custom-scrollbar">
+              <div className="w-full">
                 <table className="w-full text-left border-separate border-spacing-y-2">
                   <thead>
                     <tr className="text-neutral-500 text-[10px] uppercase tracking-widest font-bold">
@@ -596,70 +620,94 @@ export default function Financeiro() {
                           <p className="text-white font-bold text-lg">{selectedParcela.installmentNumber}/{selectedParcela.totalInstallments}</p>
                        </div>
                     </div>
-                    <div className="flex gap-4 pt-4 border-t border-white/5">
+                    <div className="flex gap-4 pt-4 border-t border-white/5 items-center justify-between">
                        <div className="flex-1">
                           <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Titular</p>
                           <p className="text-emerald-400 font-bold text-sm">{selectedParcela.buyerName}</p>
                        </div>
-                       <div className="text-right">
+                       <div className="text-right flex flex-col items-end">
                           <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Vencimento Original</p>
                           <p className="text-white font-bold text-sm tracking-tight">{formatDate(selectedParcela.dueDate)}</p>
+                          {(() => {
+                            const today = new Date(); today.setHours(0,0,0,0);
+                            const dv = new Date(selectedParcela.dueDate); dv.setHours(23,59,59,999);
+                            const diff = Math.ceil((dv.getTime() - today.getTime()) / (1000 * 3600 * 24));
+                            if (diff < 0) return <span className="bg-red-500/10 text-red-500 text-[9px] font-black px-2 py-0.5 rounded mt-1 uppercase">Atrasado há {Math.abs(diff)} dias</span>;
+                            if (diff === 0) return <span className="bg-amber-500/10 text-amber-500 text-[9px] font-black px-2 py-0.5 rounded mt-1 uppercase">Vence Hoje</span>;
+                            return <span className="bg-emerald-500/10 text-emerald-500 text-[9px] font-black px-2 py-0.5 rounded mt-1 uppercase">Adiantado em {diff} dias</span>;
+                          })()}
                        </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                       <div>
-                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Juros / Multas (+ R$)</label>
-                          <input type="number" value={juros} onChange={(e) => setJuros(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm" placeholder="0.00" />
+                       <div className="relative">
+                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Juros (+ %)</label>
+                          <div className="relative">
+                            <input type="number" value={juros} onChange={(e) => setJuros(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm pr-10" placeholder="0" />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-600 font-bold text-xs">%</span>
+                          </div>
                        </div>
-                       <div>
-                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Descontos (- R$)</label>
-                          <input type="number" value={desconto} onChange={(e) => setDesconto(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm" placeholder="0.00" />
+                       <div className="relative">
+                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Descontos (- %)</label>
+                          <div className="relative">
+                            <input type="number" value={desconto} onChange={(e) => setDesconto(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm pr-10" placeholder="0" />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-600 font-bold text-xs">%</span>
+                          </div>
                        </div>
                     </div>
 
                     <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-6 flex flex-col justify-center items-center">
                        <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-widest mb-2">Total Ajustado</p>
                        <p className="text-3xl font-bold text-emerald-400 font-heading">
-                          {formatCurrency(
-                            (selectedParcela.amount || 0) + 
-                            (parseFloat(juros) || 0) + 
-                            (parseFloat(multa) || 0) - 
-                            (parseFloat(desconto) || 0)
-                          )}
+                          {formatCurrency(valorFinalCalculado)}
                        </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
                     <div>
-                      <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Valor Final Recebido</label>
-                      <input
-                        type="number"
-                        value={paymentAmount}
-                        onChange={(e) => setPaymentAmount(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold text-xl font-heading shadow-inner"
-                        placeholder="R$ 0.00"
-                        step="0.01"
-                      />
+                       <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Valor Final Recebido</label>
+                       <input
+                         type="number"
+                         value={paymentOverride !== null ? paymentOverride : valorFinalCalculado.toFixed(2)}
+                         onChange={(e) => setPaymentOverride(e.target.value)}
+                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold text-xl font-heading shadow-inner"
+                         placeholder="R$ 0.00"
+                         step="0.01"
+                       />
                     </div>
                     <div>
                        <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Método</label>
-                       <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold text-sm tracking-wider uppercase bg-neutral-900">
-                         <option value="pix">PIX / Instantâneo</option>
-                         <option value="dinheiro">Espécie / Dinheiro</option>
-                         <option value="boleto">Boleto Bancário</option>
-                         <option value="transferencia">Transferência / TED</option>
-                         <option value="cartao">Cartão Débito/Crédito</option>
-                       </select>
+                      <select 
+                        value={paymentMethod} 
+                        onChange={(e) => setPaymentMethod(e.target.value)} 
+                        className="w-full bg-neutral-800 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold text-sm tracking-wider uppercase appearance-none cursor-pointer hover:bg-neutral-700 transition-colors"
+                      >
+                        <option value="pix" className="bg-neutral-900 text-white">PIX / Dinheiro</option>
+                        <option value="dinheiro" className="bg-neutral-900 text-white">Espécie / Dinheiro</option>
+                        <option value="boleto" className="bg-neutral-900 text-white">Boleto Bancário</option>
+                        <option value="transferencia" className="bg-neutral-900 text-white">Transferência / TED</option>
+                        <option value="cartao" className="bg-neutral-900 text-white">Cartão Débito/Crédito</option>
+                      </select>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <input type="checkbox" id="forceQuitado" checked={forceQuitado} onChange={(e) => setForceQuitado(e.target.checked)} className="w-5 h-5 rounded-lg border-white/10 text-emerald-500 focus:ring-emerald-500/20 bg-neutral-900 cursor-pointer" />
-                    <label htmlFor="forceQuitado" className="text-xs text-neutral-400 cursor-pointer select-none leading-relaxed">Considerar parcela como <strong>TOTALMENTE QUITADA</strong> (mesmo em pagamentos parciais ou bonificações).</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5 group hover:bg-emerald-500/5 transition-colors cursor-pointer" onClick={() => {
+                        const newVal = !isAntecipado;
+                        setIsAntecipado(newVal);
+                        if (newVal) setDesconto('5'); else setDesconto('0');
+                    }}>
+                      <input type="checkbox" id="isAntecipado" checked={isAntecipado} readOnly className="w-5 h-5 rounded-lg border-white/10 text-emerald-500 focus:ring-emerald-500/20 bg-neutral-900 cursor-pointer" />
+                      <label htmlFor="isAntecipado" className="text-[10px] text-neutral-400 cursor-pointer uppercase font-bold tracking-widest py-1">Bonificação por Anticipação <span className="block text-emerald-500 font-normal normal-case mt-0.5">(Escolha o % sugerido no campo Desconto)</span></label>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5 group hover:bg-blue-500/5 transition-colors cursor-pointer" onClick={() => setForceQuitado(!forceQuitado)}>
+                      <input type="checkbox" id="forceQuitado" checked={forceQuitado} readOnly className="w-5 h-5 rounded-lg border-white/10 text-emerald-500 focus:ring-emerald-500/20 bg-neutral-900 cursor-pointer" />
+                      <label htmlFor="forceQuitado" className="text-[10px] text-neutral-400 cursor-pointer uppercase font-bold tracking-widest py-1">Liquidação Integral <span className="block text-neutral-500 font-normal normal-case mt-0.5">(Considerar Parcela como Paga)</span></label>
+                    </div>
                   </div>
                 </div>
 
@@ -675,3 +723,4 @@ export default function Financeiro() {
     </div>
   );
 }
+
