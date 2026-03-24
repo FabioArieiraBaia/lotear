@@ -104,8 +104,20 @@ function handleDeleteLote($id) {
     requireAuth();
     $db = getDatabase();
     
-    $stmt = $db->prepare('DELETE FROM lotes WHERE id = ?');
-    $stmt->execute([$id]);
-    
-    jsonResponse(['success' => true]);
+    $db->beginTransaction();
+    try {
+        // Deletar registros relacionados (cascata)
+        $db->prepare('DELETE FROM pagamentos WHERE loteId = ?')->execute([$id]);
+        $db->prepare('DELETE FROM parcelas WHERE loteId = ?')->execute([$id]);
+        $db->prepare('DELETE FROM comissoes WHERE loteId = ?')->execute([$id]);
+        
+        // Deletar o lote
+        $db->prepare('DELETE FROM lotes WHERE id = ?')->execute([$id]);
+        
+        $db->commit();
+        jsonResponse(['success' => true]);
+    } catch (Exception $e) {
+        $db->rollBack();
+        jsonResponse(['error' => 'Erro ao deletar lote: ' . $e->getMessage()], 500);
+    }
 }

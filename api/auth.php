@@ -3,39 +3,25 @@
  * Authentication handlers for LoteamentosPro
  */
 
-define('ADMIN_USERNAME', 'admin');
-define('ADMIN_PASSWORD', 'admin');
-define('ADMIN_TOKEN', 'admin-token-secret-123');
+require_once __DIR__ . '/db.php';
 
 function handleLogin() {
     $data = json_decode(file_get_contents('php://input'), true);
     $username = $data['username'] ?? '';
     $password = $data['password'] ?? '';
     
-    require_once __DIR__ . '/db.php';
     $db = getDatabase();
     
-    // Check if table is empty, if so create default admin
+    // Check if table is empty, if so create default admin (using prepared statement)
     $stmt = $db->query('SELECT COUNT(*) FROM admin_users');
     if ($stmt->fetchColumn() == 0) {
         $hash = password_hash('admin', PASSWORD_DEFAULT);
         $perms = json_encode(['loteamentos', 'apresentacao', 'financeiro', 'compradores', 'contatos', 'corretores', 'usuarios']);
-        $db->exec("INSERT INTO admin_users (name, email, password, role, permissions) VALUES ('Administrador', 'admin', '$hash', 'Admin', '$perms')");
+        $stmtInsert = $db->prepare('INSERT INTO admin_users (name, email, password, role, permissions) VALUES (?, ?, ?, ?, ?)');
+        $stmtInsert->execute(['Administrador', 'admin', $hash, 'Admin', $perms]);
     }
     
-    // Test for old static credential as fallback
-    if ($username === ADMIN_USERNAME && $password === ADMIN_PASSWORD) {
-        jsonResponse([
-            'token' => ADMIN_TOKEN,
-            'user' => [
-                'name' => 'Admin Sistema',
-                'role' => 'Administrador',
-                'permissions' => ['loteamentos', 'apresentacao', 'financeiro', 'compradores', 'contatos', 'corretores', 'usuarios']
-            ]
-        ]);
-    }
-    
-    // Database check
+    // Database authentication only
     $stmt = $db->prepare('SELECT * FROM admin_users WHERE email = ? AND active = 1');
     $stmt->execute([$username]);
     $user = $stmt->fetch();
@@ -71,10 +57,6 @@ function requireAuth() {
     if (!$token) {
         jsonResponse(['error' => 'Unauthorized'], 401);
         exit;
-    }
-    
-    if ($token === ADMIN_TOKEN) {
-        return ['name' => 'Admin', 'role' => 'Admin', 'permissions' => ['loteamentos', 'apresentacao', 'financeiro', 'compradores', 'contatos', 'corretores', 'usuarios']];
     }
     
     require_once __DIR__ . '/db.php';

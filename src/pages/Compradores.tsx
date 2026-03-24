@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { resolveUrl } from '../utils/url';
 import { Users, Search, Filter, Loader2, MapPin, DollarSign, Calendar, User, Phone, Mail, CreditCard, ChevronDown, ChevronUp, MessageCircle, Copy, Check, Clock, TrendingUp, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -58,7 +57,7 @@ export default function Compradores() {
     const token = localStorage.getItem('adminToken');
     
     try {
-      const res = await fetch(import.meta.env.BASE_URL + 'api/financeiro/pagamentos', {
+      const res = await fetch(import.meta.env.BASE_URL + 'api/pagamentos', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

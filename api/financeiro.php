@@ -139,11 +139,6 @@ function handleGenerateParcelas($loteId) {
     $startDate = $data['startDate'] ?? date('Y-m-d');
     $dayOfMonth = intval($data['dayOfMonth'] ?? 10); // Dia de vencimento padrão
     
-    // PRIMEIRO: Deletar TODOS os dados financeiros existentes para evitar duplicatas
-    $db->prepare('DELETE FROM pagamentos WHERE loteId = ?')->execute([$loteId]);
-    $db->prepare('DELETE FROM parcelas WHERE loteId = ?')->execute([$loteId]);
-    $db->prepare('DELETE FROM comissoes WHERE loteId = ?')->execute([$loteId]);
-    
     // Iniciar transação
     $db->beginTransaction();
     
@@ -347,8 +342,8 @@ function handleRegistrarPagamento() {
             }
         }
         
-        // Atualizar total pago no lote
-        $stmtTotalLote = $db->prepare('SELECT COALESCE(SUM(amount), 0) as total FROM pagamentos WHERE loteId = ?');
+        // Atualizar total pago no lote (excluindo comissões)
+        $stmtTotalLote = $db->prepare('SELECT COALESCE(SUM(amount), 0) as total FROM pagamentos WHERE loteId = ? AND type != "comissao"');
         $stmtTotalLote->execute([$loteId]);
         $totalPagoLote = floatval($stmtTotalLote->fetch()['total']);
         

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { resolveUrl } from '../utils/url';
 import { Loader2, Plus, Edit2, Trash2, ShieldAlert, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -99,7 +98,9 @@ export default function Usuarios() {
     
     const token = localStorage.getItem('adminToken');
     const method = editingId ? 'PUT' : 'POST';
-    const url = editingId ? `/api/usuarios/${editingId}` : '/api/usuarios';
+    const url = editingId 
+      ? import.meta.env.BASE_URL + `api/usuarios/${editingId}` 
+      : import.meta.env.BASE_URL + 'api/usuarios';
     
     // Default to sending everything
     const payload: any = { name, email, role, permissions };

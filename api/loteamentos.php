@@ -27,7 +27,20 @@ function handleCreateLoteamento() {
             mkdir($uploadDir, 0755, true);
         }
         
-        $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+        // Validar extensão do arquivo
+        $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+        if (!in_array($ext, $allowedExts)) {
+            jsonResponse(['error' => 'Tipo de arquivo não permitido. Use: ' . implode(', ', $allowedExts)], 400);
+            return;
+        }
+        
+        // Validar tamanho (max 20MB)
+        if ($_FILES['image']['size'] > 20 * 1024 * 1024) {
+            jsonResponse(['error' => 'Arquivo muito grande. Máximo: 20MB'], 400);
+            return;
+        }
+        
         $uniqueName = time() . '-' . mt_rand(100000000, 999999999) . '.' . $ext;
         $destPath = $uploadDir . $uniqueName;
         
@@ -117,7 +130,7 @@ function handleDeleteLoteamento($id) {
     
     // Deletar arquivo de imagem
     if (!empty($loteamento['imageUrl'])) {
-        $imagePath = __DIR__ . '/..' . $loteamento['imageUrl'];
+        $imagePath = __DIR__ . '/../' . $loteamento['imageUrl'];
         if (file_exists($imagePath)) {
             unlink($imagePath);
         }

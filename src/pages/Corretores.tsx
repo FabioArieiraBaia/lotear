@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { resolveUrl } from '../utils/url';
 import { Briefcase, Plus, Search, Loader2, MapPin, Edit2, Trash2, X, Check, DollarSign, Phone, Mail, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,7 +17,7 @@ export default function Corretores() {
     phone: '',
     cpf: '',
     creci: '',
-    commissionRate: 0
+    commissionRate: 5
   });
 
   useEffect(() => {
@@ -50,7 +49,7 @@ export default function Corretores() {
       phone: '',
       cpf: '',
       creci: '',
-      commissionRate: 0
+      commissionRate: 5
     });
     setShowModal(true);
   };

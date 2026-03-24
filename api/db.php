@@ -152,6 +152,22 @@ function getDatabase() {
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         ");
+        
+        // Create indexes for performance
+        $db->exec("
+            CREATE INDEX IF NOT EXISTS idx_lotes_loteamentoId ON lotes(loteamentoId);
+            CREATE INDEX IF NOT EXISTS idx_lotes_corretorId ON lotes(corretorId);
+            CREATE INDEX IF NOT EXISTS idx_lotes_status ON lotes(status);
+            CREATE INDEX IF NOT EXISTS idx_parcelas_loteId ON parcelas(loteId);
+            CREATE INDEX IF NOT EXISTS idx_parcelas_status ON parcelas(status);
+            CREATE INDEX IF NOT EXISTS idx_parcelas_dueDate ON parcelas(dueDate);
+            CREATE INDEX IF NOT EXISTS idx_pagamentos_loteId ON pagamentos(loteId);
+            CREATE INDEX IF NOT EXISTS idx_pagamentos_parcelaId ON pagamentos(parcelaId);
+            CREATE INDEX IF NOT EXISTS idx_comissoes_corretorId ON comissoes(corretorId);
+            CREATE INDEX IF NOT EXISTS idx_comissoes_loteId ON comissoes(loteId);
+            CREATE INDEX IF NOT EXISTS idx_leads_loteamentoId ON leads(loteamentoId);
+            CREATE INDEX IF NOT EXISTS idx_admin_users_token ON admin_users(token);
+        ");
     }
     
     return $db;

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { resolveUrl } from '../utils/url';
 import { 
   DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, Loader2, FileText, 
   Calendar, CreditCard, Users, AlertTriangle, CheckCircle, Clock, ChevronDown, 
@@ -123,7 +122,7 @@ export default function Financeiro() {
     const token = localStorage.getItem('adminToken');
     
     try {
-      const res = await fetch(import.meta.env.BASE_URL + 'api/financeiro/pagamentos', {
+      const res = await fetch(import.meta.env.BASE_URL + 'api/pagamentos', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
