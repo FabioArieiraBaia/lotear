@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Mail, Loader2, Calendar, MapPin, Copy, Check, MessageCircle, GripVertical, Plus, User } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, Mail, Loader2, Calendar, MapPin, Copy, Check, 
+  MessageCircle, GripVertical, Plus, User, 
+  TrendingUp, Users, Target, MousePointer2, ChevronRight, X
+} from 'lucide-react';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 
 const COLUMNS = [
-  { id: 'Novo', title: 'Novos Leads', color: 'blue', bgColor: 'bg-blue-500/10', borderColor: 'border-blue-500/30', textColor: 'text-blue-400', dotColor: 'bg-blue-400' },
-  { id: 'Em Atendimento', title: 'Em Atendimento', color: 'amber', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30', textColor: 'text-amber-400', dotColor: 'bg-amber-400' },
-  { id: 'Convertido', title: 'Convertidos', color: 'emerald', bgColor: 'bg-emerald-500/10', borderColor: 'border-emerald-500/30', textColor: 'text-emerald-400', dotColor: 'bg-emerald-400' },
-  { id: 'Perdido', title: 'Perdidos', color: 'red', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30', textColor: 'text-red-400', dotColor: 'bg-red-400' },
+  { id: 'Novo', title: 'Novos Leads', color: 'blue', bgColor: 'from-blue-500/10 to-blue-500/5', borderColor: 'border-blue-500/20', textColor: 'text-blue-400', dotColor: 'bg-blue-400' },
+  { id: 'Em Atendimento', title: 'Atendimento', color: 'amber', bgColor: 'from-amber-500/10 to-amber-500/5', borderColor: 'border-amber-500/20', textColor: 'text-amber-400', dotColor: 'bg-amber-400' },
+  { id: 'Convertido', title: 'Convertidos', color: 'emerald', bgColor: 'from-emerald-500/10 to-emerald-500/5', borderColor: 'border-emerald-500/20', textColor: 'text-emerald-400', dotColor: 'bg-emerald-400' },
+  { id: 'Perdido', title: 'Perdidos', color: 'red', bgColor: 'from-red-500/10 to-red-500/5', borderColor: 'border-red-500/20', textColor: 'text-red-400', dotColor: 'bg-red-400' },
 ];
 
 export default function Contatos() {
@@ -17,7 +21,6 @@ export default function Contatos() {
   const [draggedLead, setDraggedLead] = useState<any | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
-  // Função para limpar número e criar link do WhatsApp
   const getWhatsAppLink = (phone: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
     const fullNumber = cleanPhone.length === 11 ? `55${cleanPhone}` : 
@@ -26,7 +29,6 @@ export default function Contatos() {
     return `https://wa.me/${fullNumber}`;
   };
 
-  // Função para copiar email
   const copyEmail = async (e: React.MouseEvent, email: string) => {
     e.stopPropagation();
     try {
@@ -78,7 +80,6 @@ export default function Contatos() {
     }
   };
 
-  // Drag and Drop handlers
   const handleDragStart = (e: React.DragEvent, lead: any) => {
     setDraggedLead(lead);
     e.dataTransfer.effectAllowed = 'move';
@@ -94,10 +95,6 @@ export default function Contatos() {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverColumn(columnId);
-  };
-
-  const handleDragLeave = () => {
-    setDragOverColumn(null);
   };
 
   const handleDrop = (e: React.DragEvent, newStatus: string) => {
@@ -121,38 +118,49 @@ export default function Contatos() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mb-4" />
-        <p className="text-emerald-500/70 font-mono text-sm tracking-widest uppercase">Carregando Leads...</p>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Target className="w-6 h-6 text-emerald-500" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="container mx-auto pb-12 font-sans flex flex-col h-[calc(100vh-8rem)]">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-white mb-2">Kanban de Contatos</h2>
-          <p className="text-neutral-400">Arraste os cards entre as colunas para mudar o status.</p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 shrink-0">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h2 className="text-4xl font-bold text-white mb-2 font-heading tracking-tight">Conversão de <span className="text-emerald-500">Leads</span></h2>
+          <p className="text-neutral-500 font-medium">Pipeline comercial interativo para gestão de prospects e negociações.</p>
+        </motion.div>
         
-        {/* Busca */}
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
-          <input
-            type="text"
-            placeholder="Buscar por nome, email ou telefone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-          />
+        <div className="flex gap-4">
+           <div className="relative group/search">
+             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within/search:text-emerald-500 transition-colors" />
+             <input 
+               type="text" 
+               placeholder="Buscar prospect..."
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+               className="bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 min-w-[300px] transition-all"
+             />
+           </div>
+           <div className="text-right hidden sm:block px-6 py-2.5 bg-white/5 border border-white/10 rounded-2xl">
+              <p className="text-[10px] text-neutral-500 uppercase font-black tracking-widest leading-none mb-1">Taxa Conversão</p>
+              <p className="text-xl font-bold text-white leading-none font-heading">
+                {leads.length > 0 ? ((leads.filter(l => l.status === 'Convertido').length / leads.length) * 100).toFixed(0) : 0}%
+              </p>
+           </div>
         </div>
       </div>
 
       {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto pb-4">
-        <div className="flex gap-4 min-w-max h-full">
+      <div className="flex-1 overflow-x-auto pb-6 scrollbar-hide">
+        <div className="flex gap-6 min-w-max h-full">
           {COLUMNS.map((column) => {
             const columnLeads = getLeadsByStatus(column.id);
             const isOver = dragOverColumn === column.id;
@@ -160,102 +168,88 @@ export default function Contatos() {
             return (
               <div
                 key={column.id}
-                className={`w-80 flex flex-col rounded-2xl transition-all duration-200 ${
-                  isOver ? 'ring-2 ring-white/30 scale-[1.02]' : ''
-                }`}
                 onDragOver={(e) => handleDragOver(e, column.id)}
-                onDragLeave={handleDragLeave}
+                onDragLeave={() => setDragOverColumn(null)}
                 onDrop={(e) => handleDrop(e, column.id)}
+                className="w-80 flex flex-col h-full"
               >
                 {/* Column Header */}
-                <div className={`${column.bgColor} ${column.borderColor} border rounded-t-2xl p-3 flex items-center justify-between`}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${column.dotColor}`} />
-                    <h3 className={`font-semibold ${column.textColor}`}>{column.title}</h3>
+                <div className={`shrink-0 p-5 rounded-t-[2rem] bg-gradient-to-b ${column.bgColor} border-t border-x ${column.borderColor} flex items-center justify-between`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full ${column.dotColor} shadow-[0_0_10px_rgba(255,255,255,0.1)]`} />
+                    <h3 className={`text-xs font-black uppercase tracking-[0.2em] ${column.textColor}`}>{column.title}</h3>
                   </div>
-                  <span className={`${column.textColor} bg-black/20 px-2 py-0.5 rounded-full text-sm font-medium`}>
+                  <span className="bg-white/5 border border-white/10 text-white/50 px-3 py-1 rounded-full text-[10px] font-black">
                     {columnLeads.length}
                   </span>
                 </div>
 
                 {/* Column Content */}
-                <div className={`flex-1 ${column.bgColor} ${column.borderColor} border-x border-b rounded-b-2xl p-3 space-y-3 overflow-y-auto max-h-[calc(100vh-220px)]`}>
-                  <AnimatePresence mode="popLayout">
+                <div className={`flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 border-x border-b rounded-b-[2rem] ${column.borderColor} ${isOver ? 'bg-white/[0.04]' : 'bg-white/[0.01]'} transition-all`}>
+                  <AnimatePresence>
                     {columnLeads.length === 0 ? (
-                      <div className="text-center py-8 text-neutral-500 text-sm">
-                        {isOver ? (
-                          <p className="text-white/70">Solte aqui</p>
-                        ) : (
-                          <p>Nenhum lead</p>
-                        )}
+                      <div className="h-full flex flex-col items-center justify-center opacity-20 py-20 pointer-events-none">
+                         <Target className="w-8 h-8 text-neutral-500 mb-2" />
+                         <p className="text-[10px] uppercase font-black tracking-widest">Vazio</p>
                       </div>
                     ) : (
                       columnLeads.map((lead) => (
                         <motion.div
                           key={lead.id}
-                          layout
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
+                          layoutId={lead.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
                           draggable
                           onDragStart={(e) => handleDragStart(e, lead)}
                           onDragEnd={handleDragEnd}
-                          className={`bg-neutral-900/80 border border-white/10 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:border-white/20 transition-all group ${
-                            draggedLead?.id === lead.id ? 'opacity-50 scale-95' : ''
+                          className={`bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-5 cursor-grab active:cursor-grabbing hover:bg-white/[0.06] hover:border-white/20 transition-all group relative sidebar-glow ${
+                            draggedLead?.id === lead.id ? 'opacity-30' : ''
                           }`}
                         >
-                          {/* Drag Handle */}
-                          <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-full ${column.bgColor} flex items-center justify-center shrink-0`}>
-                                <span className={`${column.textColor} font-bold text-lg`}>
-                                  {lead.name.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <p className="font-medium text-white">{lead.name}</p>
-                              </div>
+                               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
+                                  <span className="text-white font-black text-sm">{lead.name.charAt(0).toUpperCase()}</span>
+                               </div>
+                               <div>
+                                  <p className="text-[13px] font-bold text-white group-hover:text-emerald-400 transition-colors leading-tight">{lead.name}</p>
+                                  <p className="text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">{new Date(lead.createdAt).toLocaleDateString('pt-BR')}</p>
+                               </div>
                             </div>
-                            <GripVertical className="w-4 h-4 text-neutral-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <GripVertical className="w-4 h-4 text-neutral-700 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
 
-                          {/* Contact Info */}
-                          <div className="space-y-2">
-                            <button
-                              onClick={(e) => copyEmail(e, lead.email)}
-                              className="flex items-center gap-2 text-xs text-neutral-400 hover:text-emerald-400 transition-colors w-full"
-                            >
-                              <Mail className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{lead.email}</span>
-                              {copiedEmail === lead.email ? (
-                                <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                              ) : (
-                                <Copy className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100" />
-                              )}
-                            </button>
+                          <div className="space-y-3">
+                             <div className="flex flex-col gap-1.5">
+                                <button
+                                  onClick={(e) => copyEmail(e, lead.email)}
+                                  className="flex items-center gap-2 text-[11px] text-neutral-400 hover:text-white transition-colors w-full group/email"
+                                >
+                                  <Mail className="w-3.5 h-3.5 text-emerald-500/50" />
+                                  <span className="truncate flex-1 text-left">{lead.email}</span>
+                                  {copiedEmail === lead.email ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 opacity-0 group-hover/email:opacity-100" />}
+                                </button>
 
-                            <a
-                              href={getWhatsAppLink(lead.phone)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-2 text-xs text-neutral-400 hover:text-green-400 transition-colors"
-                            >
-                              <MessageCircle className="w-3 h-3 shrink-0" />
-                              <span className="underline underline-offset-2">{lead.phone}</span>
-                            </a>
+                                <a
+                                  href={getWhatsAppLink(lead.phone)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-[11px] text-neutral-400 hover:text-green-400 transition-colors"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5 text-green-500/50" />
+                                  <span className="font-bold">{lead.phone}</span>
+                                </a>
+                             </div>
 
-                            {lead.loteName && (
-                              <div className="flex items-center gap-2 text-xs text-neutral-400 pt-1">
-                                <MapPin className="w-3 h-3 shrink-0 text-emerald-400" />
-                                <span className="truncate">{lead.loteName}</span>
-                              </div>
-                            )}
-
-                            <div className="flex items-center gap-2 text-xs text-neutral-500 pt-1">
-                              <Calendar className="w-3 h-3 shrink-0" />
-                              <span>{new Date(lead.createdAt).toLocaleDateString('pt-BR')}</span>
-                            </div>
+                             {lead.loteName && (
+                               <div className="pt-3 border-t border-white/5 flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                                     <MapPin className="w-3 h-3 text-emerald-500" />
+                                  </div>
+                                  <span className="text-[10px] text-neutral-300 font-bold uppercase tracking-tight truncate">{lead.loteName}</span>
+                               </div>
+                             )}
                           </div>
                         </motion.div>
                       ))

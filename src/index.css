@@ -1,1 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Outfit:wght@100..900&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-accent: #06b6d4;
+}
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', sans-serif;
+    --font-heading: 'Outfit', sans-serif;
+  }
+
+  body {
+    background-color: #050510;
+    color: #f5f5f5;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.011em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.025em;
+  }
+}
+
+@layer components {
+  /* Glassmorphism effects */
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-3xl border border-white/10 shadow-2xl;
+  }
+  
+  .glass-card-hover {
+    @apply hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_60px_rgba(0,0,0,0.65)] transition-all duration-500 ease-out;
+  }
+
+  /* Custom Glow scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.3);
+  }
+
+  /* Text Glow */
+  .text-glow {
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  }
+
+  /* Premium sidebar glow */
+  .sidebar-glow {
+    background-image: 
+      radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 50%),
+      radial-gradient(circle at bottom left, rgba(6, 182, 212, 0.05), transparent 50%);
+  }
+
+  /* Map Markers and HUD */
+  .map-hud-vignette {
+    box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
+  }
+}
+
+/* Page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 400ms cubic-bezier(0.23, 1, 0.32, 1), transform 400ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Animation utilities */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); filter: blur(30px); }
+  50% { opacity: 0.6; transform: scale(1.1); filter: blur(50px); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 6s ease-in-out infinite;
+}
+
+/* Leaflet Overrides for Premium Skin */
+.leaflet-container {
+    background: #050510 !important;
+    outline: 0;
+}
+.leaflet-control-zoom {
+    border: none !important;
+    margin: 20px !important;
+}
+.leaflet-control-zoom a {
+    background: rgba(0,0,0,0.4) !important;
+    backdrop-filter: blur(10px);
+    color: white !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 12px !important;
+    margin-bottom: 5px !important;
+    transition: all 0.2s !important;
+}
+.leaflet-control-zoom a:hover {
+    background: #10b981 !important;
+    color: black !important;
+    border-color: #10b981 !important;
+}

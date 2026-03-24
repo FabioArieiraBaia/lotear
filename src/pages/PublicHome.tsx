@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { resolveUrl } from '../utils/url';
 import { Link } from 'react-router-dom';
-import { Map, Calendar, Loader2, ArrowRight, MapPin, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { 
+  Map, Calendar, Loader2, ArrowRight, MapPin, MessageCircle, 
+  ChevronLeft, ChevronRight, Layout, Zap, ShieldCheck, Globe
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -20,7 +23,6 @@ export default function PublicHome() {
         setLoteamentos(data);
         setLoading(false);
         
-        // Fetch lote counts for each loteamento
         data.forEach((loteamento: any) => {
           fetch(import.meta.env.BASE_URL + `api/loteamentos/${loteamento.id}/lotes`)
             .then(res => res.json())
@@ -32,7 +34,6 @@ export default function PublicHome() {
                 reservados: lotes.filter((l: any) => l.status === 'Reservado').length
               };
               setLotesCounts(prev => ({ ...prev, [loteamento.id]: counts }));
-              // Collect all lotes with images for carousel
               const lotesWithImages = lotes.filter((l: any) => l.photoUrl);
               setAllLotes(prev => [...prev, ...lotesWithImages.map((l: any) => ({ ...l, loteamentoName: loteamento.name, loteamentoId: loteamento.id }))]);
             })
@@ -45,300 +46,175 @@ export default function PublicHome() {
       });
   }, []);
 
-  // Auto-rotate carousel every 5 seconds
   useEffect(() => {
     if (allLotes.length === 0) return;
-    
     const interval = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % allLotes.length);
-    }, 5000);
-    
+    }, 6000);
     return () => clearInterval(interval);
   }, [allLotes.length]);
 
-  const nextSlide = () => {
-    if (allLotes.length > 0) {
-      setCurrentSlide(prev => (prev + 1) % allLotes.length);
-    }
-  };
-
-  const prevSlide = () => {
-    if (allLotes.length > 0) {
-      setCurrentSlide(prev => (prev - 1 + allLotes.length) % allLotes.length);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] bg-neutral-950">
-        <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mb-4" />
-        <p className="text-emerald-500/70 font-mono text-sm tracking-widest uppercase">Carregando Loteamentos...</p>
+      <div className="flex items-center justify-center min-h-screen bg-neutral-950">
+        <div className="relative">
+          <div className="w-20 h-20 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+             <Globe className="w-8 h-8 text-emerald-500 animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
-  };
-
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-neutral-950 font-sans selection:bg-emerald-500/30">
-      {/* Background Map */}
-      <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
-        <MapContainer 
-          center={[-15.7801, -47.9292]} // Center of Brazil
-          zoom={4} 
-          zoomControl={false}
-          attributionControl={false}
-          className="w-full h-full bg-[#0a0a0a]"
-          style={{ height: '100%', width: '100%', background: '#0a0a0a' }}
-        >
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          />
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#050505] font-sans selection:bg-emerald-500/30">
+      {/* Background Map Cinematic */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none grayscale">
+        <MapContainer center={[-15.78, -47.92]} zoom={5} zoomControl={false} attributionControl={false} className="w-full h-full bg-black">
+          <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
         </MapContainer>
-        {/* Vignette overlay for cinematic feel */}
         <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)] z-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black z-10" />
       </div>
 
-      {/* Content Overlay */}
       <div className="relative z-10 w-full max-w-7xl mx-auto p-6 md:p-12 min-h-screen flex flex-col">
-        {/* Ambient background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
+        {/* Glow Effects */}
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-500/5 blur-[150px] rounded-full pointer-events-none" />
 
-        {/* Hero with Carousel */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="mb-16 relative mt-8"
-        >
-          {/* Carousel */}
-          {allLotes.length > 0 && (
-            <div className="mb-12 rounded-3xl overflow-hidden border border-white/10 group">
-              <div className="relative aspect-[16/9] md:aspect-[21/9] w-full bg-neutral-900 overflow-hidden">
-                <motion.div
-                  key={currentSlide}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="absolute inset-0"
-                >
-                  <img
-                    src={allLotes[currentSlide].photoUrl}
-                    alt={allLotes[currentSlide].name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-                </motion.div>
-
-                {/* Carousel Content Overlay */}
-                <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16 z-20">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="max-w-2xl"
-                  >
-                    <p className="text-emerald-400 font-mono text-sm uppercase tracking-widest mb-3 drop-shadow-lg">
-                      Lote {allLotes[currentSlide].number || allLotes[currentSlide].id}
-                    </p>
-                    <h3 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-2xl">
-                      {allLotes[currentSlide].loteamentoName}
-                    </h3>
-                    <p className="text-neutral-200 text-lg md:text-xl drop-shadow-lg mb-6">
-                      {allLotes[currentSlide].description || 'Terreno disponível para construção de sua moradia'}
-                    </p>
-                    <div className="flex flex-wrap gap-4">
-                      <Link
-                        to={`/loteamento/${allLotes[currentSlide].loteamentoId}`}
-                        className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold rounded-full hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all duration-300 hover:scale-105 inline-flex items-center gap-2"
-                      >
-                        Ver Detalhes <ArrowRight className="w-5 h-5" />
-                      </Link>
-                      <a
-                        href={`https://wa.me/5500000000000?text=Olá! Estou interessado no lote ${allLotes[currentSlide].number || allLotes[currentSlide].id} de ${allLotes[currentSlide].loteamentoName}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-8 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 inline-flex items-center gap-2"
-                      >
-                        <MessageCircle className="w-5 h-5" /> Tenho Interesse
-                      </a>
-                    </div>
-                  </motion.div>
-                </div>
-
-                {/* Navigation Buttons */}
-                <button
-                  onClick={prevSlide}
-                  className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-30 bg-black/40 backdrop-blur-md hover:bg-black/60 text-white p-3 rounded-full transition-all duration-300 hover:scale-110 border border-white/20 hover:border-emerald-500/50"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-                <button
-                  onClick={nextSlide}
-                  className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 bg-black/40 backdrop-blur-md hover:bg-black/60 text-white p-3 rounded-full transition-all duration-300 hover:scale-110 border border-white/20 hover:border-emerald-500/50"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-
-                {/* Carousel Indicators */}
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-2">
-                  {allLotes.map((_, index) => (
-                    <motion.button
-                      key={index}
-                      onClick={() => setCurrentSlide(index)}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        index === currentSlide ? 'bg-emerald-500 w-8' : 'bg-white/30 hover:bg-white/50'
-                      }`}
-                      whileHover={{ scale: 1.2 }}
-                    />
-                  ))}
-                </div>
+        {/* Hero Section */}
+        <header className="flex flex-col md:flex-row items-center justify-between mb-20">
+           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="mb-8 md:mb-0">
+              <div className="flex items-center gap-3 mb-6 bg-white/5 border border-white/10 px-4 py-2 rounded-full w-fit backdrop-blur-xl">
+                 <Zap className="w-4 h-4 text-emerald-500 fill-emerald-500" />
+                 <span className="text-[10px] text-white font-black uppercase tracking-[0.3em]">Empreendimentos Exclusivos</span>
               </div>
-            </div>
-          )}
+              <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 font-heading tracking-tight leading-[1.1]">
+                Encontre o seu <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-500 to-cyan-500">Espaço Ideal</span>
+              </h1>
+              <p className="text-neutral-400 text-lg md:text-xl max-w-xl leading-relaxed font-medium">
+                Sistemas de geoprocessamento em tempo real para visualização de plantas e aquisição inteligente de lotes.
+              </p>
+           </motion.div>
 
-          {/* Title Section */}
-          <div className="text-center">
-            <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight drop-shadow-2xl">
-              Loteamentos <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Disponíveis</span>
-            </h2>
-            <p className="text-neutral-300 max-w-2xl mx-auto text-lg md:text-xl leading-relaxed drop-shadow-md">
-              Explore nossos empreendimentos, visualize as plantas interativas em tempo real e encontre o terreno perfeito para o seu futuro.
-            </p>
-          </div>
-        </motion.div>
+           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative group">
+              <div className="absolute inset-0 bg-emerald-500/20 blur-[60px] rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative w-72 h-72 md:w-96 md:h-96 rounded-[3rem] bg-neutral-900 border border-white/10 overflow-hidden shadow-2xl sidebar-glow">
+                 <AnimatePresence mode="wait">
+                   {allLotes.length > 0 ? (
+                     <motion.img 
+                        key={currentSlide} 
+                        initial={{ opacity: 0, scale: 1.1 }} 
+                        animate={{ opacity: 1, scale: 1 }} 
+                        exit={{ opacity: 0 }} 
+                        transition={{ duration: 1 }}
+                        src={allLotes[currentSlide].photoUrl} 
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                        alt="Background"
+                     />
+                   ) : (
+                     <div className="flex items-center justify-center h-full">
+                        <Map className="w-16 h-16 text-neutral-800" />
+                     </div>
+                   )}
+                 </AnimatePresence>
+                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
+                 <div className="absolute bottom-8 left-8">
+                    <p className="text-emerald-400 font-black text-[10px] uppercase tracking-widest mb-2">Visão Aérea</p>
+                    <div className="flex items-center gap-2">
+                       <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                       <span className="text-white font-bold text-lg">100% Verificado</span>
+                    </div>
+                 </div>
+              </div>
+           </motion.div>
+        </header>
 
-        {loteamentos.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-24 bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-2xl mx-auto w-full"
-          >
-            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
-              <Map className="w-10 h-10 text-neutral-500" />
-            </div>
-            <h3 className="text-xl font-medium text-white mb-2 tracking-wide">Nenhum loteamento disponível</h3>
-            <p className="text-neutral-500">Volte mais tarde para conferir novos empreendimentos.</p>
-          </motion.div>
-        ) : (
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-          >
-            {loteamentos.map((loteamento) => (
-              <motion.div key={loteamento.id} variants={itemVariants}>
-                <Link
-                  to={`/loteamento/${loteamento.id}`}
-                  className="group block bg-black/60 backdrop-blur-2xl rounded-3xl border border-white/10 overflow-hidden hover:bg-black/80 transition-all duration-500 hover:shadow-[0_0_50px_rgba(16,185,129,0.2)] hover:border-emerald-500/50 relative"
+        {/* Loteamentos Cards */}
+        <section className="relative">
+           <div className="flex items-end justify-between mb-12">
+              <div>
+                 <h2 className="text-3xl font-bold text-white font-heading tracking-tight">Empreendimentos <span className="text-emerald-500">Disponíveis</span></h2>
+                 <p className="text-neutral-500 font-medium">Explore as plantas interativas e escolha seu lote</p>
+              </div>
+              <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/50 to-transparent mx-8 mb-4 hidden lg:block" />
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {loteamentos.map((lot, idx) => (
+                <motion.div 
+                  key={lot.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
                 >
-                  {/* Image Container */}
-                  <div className="aspect-[4/3] w-full bg-neutral-900 relative overflow-hidden">
-                    {loteamento.imageUrl ? (
-                      <>
-                        <img
-                          src={resolveUrl(loteamento.imageUrl)}
-                          alt={loteamento.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-80 group-hover:opacity-100 mix-blend-screen"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
-                      </>
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-neutral-600 bg-neutral-900/50">
-                        <Map className="w-12 h-12 mb-3 opacity-50" />
-                        <span className="text-xs uppercase tracking-widest font-mono">Sem Imagem</span>
-                      </div>
-                    )}
-                    
-                    {/* Status Badge */}
-                    <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse" />
-                      <span className="text-xs font-medium text-white tracking-wider uppercase">Ativo</span>
-                    </div>
-                    
-                    {/* New Badge - for loteamentos created in the last 30 days */}
-                    {(Date.now() - new Date(loteamento.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000 && (
-                      <div className="absolute top-4 left-4 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 rounded-full">
-                        <span className="text-xs font-bold text-white tracking-wider uppercase drop-shadow-md">Novo</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-6 relative">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors">{loteamento.name}</h3>
-                        <div className="flex items-center text-sm text-neutral-400 gap-2">
-                          <MapPin className="w-4 h-4 text-emerald-500/70" />
-                          <span>Planta Interativa</span>
-                        </div>
-                      </div>
+                  <Link
+                    to={`/loteamento/${lot.id}`}
+                    className="group block bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:bg-white/[0.06] hover:border-emerald-500/30 hover:shadow-[0_0_50px_rgba(16,185,129,0.15)] relative sidebar-glow"
+                  >
+                    <div className="aspect-[16/10] relative overflow-hidden bg-neutral-900">
+                       {lot.imageUrl ? (
+                         <img src={resolveUrl(lot.imageUrl)} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700 opacity-60 group-hover:opacity-100" alt={lot.name} />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-neutral-800"><Map className="w-12 h-12" /></div>
+                       )}
+                       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+                       <div className="absolute top-6 left-6 flex gap-2">
+                          <span className="bg-emerald-500 text-black px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-xl">Ativo</span>
+                       </div>
                     </div>
 
-                    {/* Lotes Count */}
-                    {lotesCounts[loteamento.id] && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-medium">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          {lotesCounts[loteamento.id].disponiveis} disponíveis
-                        </div>
-                        {lotesCounts[loteamento.id].reservados > 0 && (
-                          <div className="flex items-center gap-1.5 bg-amber-500/20 text-amber-400 px-3 py-1.5 rounded-full text-xs font-medium">
-                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                            {lotesCounts[loteamento.id].reservados} reservados
+                    <div className="p-8">
+                       <div className="flex justify-between items-start mb-6">
+                          <div>
+                             <h3 className="text-2xl font-bold text-white font-heading tracking-tight mb-1 group-hover:text-emerald-400 transition-colors uppercase">{lot.name}</h3>
+                             <div className="flex items-center gap-2 text-neutral-500">
+                                <MapPin className="w-3.5 h-3.5" />
+                                <span className="text-xs font-bold uppercase tracking-widest">Planta Interativa</span>
+                             </div>
                           </div>
-                        )}
-                        {lotesCounts[loteamento.id].vendidos > 0 && (
-                          <div className="flex items-center gap-1.5 bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full text-xs font-medium">
-                            <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                            {lotesCounts[loteamento.id].vendidos} vendidos
+                          <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 transition-transform group-hover:rotate-45">
+                             <ArrowRight className="w-6 h-6 text-emerald-500" />
                           </div>
-                        )}
-                      </div>
-                    )}
+                       </div>
 
-                    <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/10">
-                      <div className="flex items-center text-xs text-neutral-500 font-mono gap-2">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(loteamento.createdAt).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm group-hover:translate-x-1 transition-transform">
-                        Explorar <ArrowRight className="w-4 h-4" />
-                      </div>
+                       {lotesCounts[lot.id] && (
+                          <div className="grid grid-cols-2 gap-3 mb-8">
+                             <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-3">
+                                <p className="text-[9px] text-emerald-500/70 font-black uppercase tracking-widest mb-1.5">Disponíveis</p>
+                                <p className="text-xl font-bold text-white font-heading leading-none">{lotesCounts[lot.id].disponiveis}</p>
+                             </div>
+                             <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                                <p className="text-[9px] text-neutral-600 font-black uppercase tracking-widest mb-1.5">Unidades Totais</p>
+                                <p className="text-xl font-bold text-white font-heading leading-none">{lotesCounts[lot.id].total}</p>
+                             </div>
+                          </div>
+                       )}
+
+                       <div className="flex items-center justify-between text-[10px] text-neutral-600 font-black uppercase tracking-[0.2em] pt-6 border-t border-white/5">
+                          <span>{new Date(lot.createdAt).toLocaleDateString()}</span>
+                          <span className="text-emerald-500/50">Explorar Unidades</span>
+                       </div>
                     </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
+                  </Link>
+                </motion.div>
+              ))}
+           </div>
+        </section>
+
+        {/* Floating Call to Action */}
+        <div className="mt-auto pt-20 pb-10 flex flex-col items-center">
+           <p className="text-neutral-500 text-sm font-bold uppercase tracking-[0.4em] mb-4">Interessado em negociar?</p>
+           <a 
+              href="https://wa.me/5500000000000" 
+              className="px-12 py-5 bg-white text-black font-black uppercase text-xs tracking-[0.3em] rounded-full hover:bg-emerald-500 hover:text-black hover:scale-105 active:scale-95 transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)] flex items-center gap-4"
+           >
+              <MessageCircle className="w-5 h-5" /> Falar com Especialista
+           </a>
+        </div>
       </div>
-
-      {/* Floating WhatsApp Button */}
-      <a
-        href="https://wa.me/5500000000000?text=Olá! Gostaria de saber mais sobre os loteamentos disponíveis."
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white px-5 py-3.5 rounded-full shadow-[0_4px_20px_rgba(34,197,94,0.4)] hover:shadow-[0_6px_30px_rgba(34,197,94,0.5)] transition-all duration-300 hover:scale-105 group"
-      >
-        <MessageCircle className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-        <span className="font-semibold text-sm hidden sm:block">Fale Conosco</span>
-      </a>
     </div>
   );
 }

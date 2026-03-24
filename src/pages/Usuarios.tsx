@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Plus, Edit2, Trash2, ShieldAlert, Check } from 'lucide-react';
+import { 
+  Loader2, Plus, Edit2, Trash2, ShieldAlert, Check, User as UserIcon, 
+  Mail, ShieldCheck, Key, Lock, ChevronRight, X, Layout, Map, DollarSign, 
+  Users as UsersIcon, Contact, Briefcase, Eye
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Usuario {
@@ -13,13 +17,13 @@ interface Usuario {
 }
 
 const AVAILABLE_PERMISSIONS = [
-  { id: 'loteamentos', label: 'Loteamentos' },
-  { id: 'apresentacao', label: 'Apresentação (Modo Cliente)' },
-  { id: 'financeiro', label: 'Financeiro' },
-  { id: 'compradores', label: 'Compradores' },
-  { id: 'contatos', label: 'Contatos' },
-  { id: 'corretores', label: 'Corretores' },
-  { id: 'usuarios', label: 'Usuários (Permite criar/editar usuários)' },
+  { id: 'loteamentos', label: 'Loteamentos', icon: Layout },
+  { id: 'apresentacao', label: 'Modo Apresentação', icon: Map },
+  { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
+  { id: 'compradores', label: 'Compradores', icon: UsersIcon },
+  { id: 'contatos', label: 'Contatos', icon: Contact },
+  { id: 'corretores', label: 'Corretores', icon: Briefcase },
+  { id: 'usuarios', label: 'Administração', icon: ShieldCheck },
 ];
 
 export default function Usuarios() {
@@ -102,10 +106,7 @@ export default function Usuarios() {
       ? import.meta.env.BASE_URL + `api/usuarios/${editingId}` 
       : import.meta.env.BASE_URL + 'api/usuarios';
     
-    // Default to sending everything
     const payload: any = { name, email, role, permissions };
-    
-    // Only send password if it's new, or if editing and filled
     if (!editingId || password) {
       payload.password = password;
     }
@@ -156,78 +157,110 @@ export default function Usuarios() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Lock className="w-6 h-6 text-emerald-500" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h2 className="text-3xl font-bold text-white mb-2">Usuários do Sistema</h2>
-          <p className="text-neutral-400">Gerencie quem tem acesso ao painel e seus níveis de permissão.</p>
-        </div>
-        <button
+    <div className="container mx-auto pb-12 font-sans overflow-visible">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h2 className="text-4xl font-bold text-white mb-2 font-heading tracking-tight">Gestão de <span className="text-emerald-500">Acessos</span></h2>
+          <p className="text-neutral-500 font-medium">Controle de credenciais, permissões por módulo e logs de segurança.</p>
+        </motion.div>
+        
+        <button 
           onClick={handleOpenNew}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors"
+          className="bg-emerald-500 text-black px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-xl shadow-emerald-500/20"
         >
-          <Plus className="w-5 h-5" />
-          Novo Usuário
+          <Plus className="w-4 h-4" /> Registrar Usuário
         </button>
       </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+      {/* Grid de Usuários Estilo SaaS */}
+      <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl sidebar-glow">
+        <div className="p-10 border-b border-white/5 flex items-center justify-between">
+           <h3 className="text-xl font-bold text-white font-heading tracking-tight">Base de Operadores</h3>
+           <div className="bg-white/5 border border-white/10 rounded-full px-4 py-1.5 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-[10px] text-white font-black uppercase tracking-widest">{usuarios.length} Usuários</span>
+           </div>
+        </div>
+
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-white/5 text-neutral-400 text-sm">
-                <th className="p-4 font-medium">Nome / Cargo</th>
-                <th className="p-4 font-medium">E-mail</th>
-                <th className="p-4 font-medium">Módulos Permitidos</th>
-                <th className="p-4 font-medium text-right">Ações</th>
+              <tr className="text-neutral-500 text-[10px] uppercase tracking-widest font-bold border-b border-white/5 bg-white/[0.01]">
+                <th className="px-8 py-5">Colaborador / Perfil</th>
+                <th className="px-8 py-5">Credencial de Acesso</th>
+                <th className="px-8 py-5">Ecossistema Disponível</th>
+                <th className="px-8 py-5 text-right">Controle</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {usuarios.map(u => (
-                <tr key={u.id} className="hover:bg-white/5 transition-colors group text-sm">
-                  <td className="p-4">
-                    <p className="text-white font-medium">{u.name}</p>
-                    <p className="text-neutral-500 text-xs mt-1 bg-white/10 inline-block px-2 py-0.5 rounded">{u.role}</p>
+              {usuarios.map((u, idx) => (
+                <motion.tr 
+                  key={u.id} 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  transition={{ delay: idx * 0.05 }}
+                  className="group hover:bg-white/[0.03] transition-all duration-300"
+                >
+                  <td className="px-8 py-6">
+                    <div className="flex items-center gap-4">
+                       <div className="w-12 h-12 rounded-[1rem] bg-gradient-to-br from-emerald-500/20 to-emerald-700/10 flex items-center justify-center border border-emerald-500/10 group-hover:scale-110 transition-transform">
+                          <UserIcon className="w-6 h-6 text-emerald-400" />
+                       </div>
+                       <div>
+                          <p className="text-white font-bold tracking-tight text-lg group-hover:text-emerald-400 transition-colors leading-none mb-1.5">{u.name}</p>
+                          <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-md border border-white/5">{u.role}</span>
+                       </div>
+                    </div>
                   </td>
-                  <td className="p-4 text-neutral-300">{u.email}</td>
-                  <td className="p-4">
-                    <div className="flex flex-wrap gap-1">
+                  <td className="px-8 py-6">
+                     <div className="flex items-center gap-2 text-neutral-400 text-sm font-medium">
+                        <Mail className="w-4 h-4 text-emerald-500/50" /> {u.email}
+                     </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="flex flex-wrap gap-1.5">
                       {(u.permissions || []).map(p => (
-                        <span key={p} className="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-1 rounded border border-emerald-500/20 capitalize">
-                          {p}
+                        <span key={p} className="bg-white/5 text-neutral-400 text-[9px] font-black tracking-widest px-2 py-1 rounded-full border border-white/5 text-center transition-all group-hover:bg-emerald-500/10 group-hover:text-emerald-400 group-hover:border-emerald-500/20">
+                          {p.toUpperCase()}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="p-4 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <td className="px-8 py-6 text-right">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
                       <button 
                         onClick={() => handleOpenEdit(u)}
-                        className="p-2 text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:text-white border border-white/5 hover:bg-white/10 transition-all"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleDelete(u.id)}
-                        className="p-2 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all shadow-lg hover:shadow-red-500/20"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
               {usuarios.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-neutral-500">
-                    Nenhum usuário cadastrado.
+                  <td colSpan={4} className="py-20 text-center text-neutral-600 italic font-medium">
+                    Nenhum operador registrado no sistema.
                   </td>
                 </tr>
               )}
@@ -236,130 +269,113 @@ export default function Usuarios() {
         </div>
       </div>
 
+      {/* Modal - SaaS Premium Style */}
       <AnimatePresence>
         {showModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-neutral-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl"
-            >
-              <form onSubmit={handleSubmit} className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                    <ShieldAlert className="w-5 h-5 text-emerald-400" />
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowModal(false)} />
+             <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="bg-neutral-900 border border-white/10 rounded-[3rem] p-10 w-full max-w-2xl relative overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                onClick={(e) => e.stopPropagation()}
+             >
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
+                
+                <div className="flex items-center justify-between mb-10">
+                  <div>
+                     <h3 className="text-3xl font-bold text-white font-heading tracking-tight">
+                       {editingId ? 'Editar Perfil' : 'Provisionar Acesso'}
+                     </h3>
+                     <p className="text-neutral-500 text-sm font-medium mt-1">Definição de privilégios e credenciais de segurança</p>
                   </div>
-                  <h3 className="text-xl font-bold text-white">
-                    {editingId ? 'Editar Usuário' : 'Novo Usuário'}
-                  </h3>
+                  <button onClick={() => setShowModal(false)} className="w-12 h-12 rounded-2xl bg-white/5 text-neutral-500 hover:bg-white/10 transition-all flex items-center justify-center border border-white/5">
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
 
                 {error && (
-                  <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm text-center">
+                  <div className="mb-8 bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-xs font-bold uppercase tracking-widest text-center animate-pulse">
                     {error}
                   </div>
                 )}
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-neutral-400 mb-1">Nome Completo</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={name}
-                      onChange={e => setName(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-neutral-400 mb-1">Cargo / Função</label>
-                      <input 
-                        type="text" 
-                        required
-                        placeholder="Ex: Secretaria"
-                        value={role}
-                        onChange={e => setRole(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-neutral-400 mb-1">E-mail (Login)</label>
-                      <input 
-                        type="email" 
-                        required
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-neutral-400 mb-1">Senha {editingId && <span className="opacity-50">(deixe em branco para não alterar)</span>}</label>
-                    <input 
-                      type="password" 
-                      required={!editingId}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                    />
-                  </div>
-                  
-                  <div className="pt-2">
-                    <label className="block text-sm font-medium text-white mb-3">Permissões de Acesso</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {AVAILABLE_PERMISSIONS.map(pm => {
-                        const hasPerm = permissions.includes(pm.id);
-                        return (
-                          <div 
-                            key={pm.id}
-                            onClick={() => togglePermission(pm.id)}
-                            className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                              hasPerm ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
-                          >
-                            <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                              hasPerm ? 'bg-emerald-500 border-emerald-500' : 'border-neutral-500'
-                            }`}>
-                              {hasPerm && <Check className="w-3 h-3 text-white" />}
+                <form onSubmit={handleSubmit} className="space-y-8">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-6">
+                         <div>
+                            <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1 text-glow">Nome do Operador</label>
+                            <div className="relative">
+                               <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500/50" />
+                               <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" required />
                             </div>
-                            <span className={`text-sm ${hasPerm ? 'text-emerald-400 font-medium' : 'text-neutral-300'}`}>
-                              {pm.label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
+                         </div>
+                         <div>
+                            <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">E-mail Corporativo</label>
+                            <div className="relative">
+                               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500/50" />
+                               <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" required />
+                            </div>
+                         </div>
+                      </div>
 
-                <div className="flex gap-3 mt-8">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-3 rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 px-4 py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50 flex justify-center items-center"
-                  >
-                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Salvar Usuário'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
+                      <div className="space-y-6">
+                         <div>
+                            <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">Função / Cargo</label>
+                            <div className="relative">
+                               <ShieldAlert className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500/50" />
+                               <input type="text" value={role} onChange={e => setRole(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" placeholder="Ex: Financeiro" required />
+                            </div>
+                         </div>
+                         <div>
+                            <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">Segurança Corporativa (Senha)</label>
+                            <div className="relative">
+                               <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500/50" />
+                               <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" placeholder={editingId ? 'Manter atual...' : 'No mínimo 6 caracteres'} required={!editingId} />
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div>
+                      <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-4 px-1 flex items-center gap-2">
+                         <ShieldCheck className="w-3.5 h-3.5" /> Matriz de Permissões Disponíveis
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {AVAILABLE_PERMISSIONS.map(pm => {
+                          const hasPerm = permissions.includes(pm.id);
+                          return (
+                            <div 
+                              key={pm.id}
+                              onClick={() => togglePermission(pm.id)}
+                              className={`group/perm flex items-center gap-3 p-4 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                                hasPerm 
+                                  ? 'bg-emerald-500 text-black border-emerald-500 shadow-lg shadow-emerald-500/10' 
+                                  : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                              }`}
+                            >
+                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                                  hasPerm ? 'bg-black/10' : 'bg-white/5 group-hover/perm:bg-white/10'
+                               }`}>
+                                  <pm.icon className={`w-4 h-4 ${hasPerm ? 'text-black' : 'text-neutral-500 group-hover/perm:text-white'}`} />
+                               </div>
+                               <span className={`text-[10px] font-black uppercase tracking-tight ${hasPerm ? 'text-black' : 'text-neutral-400 group-hover/perm:text-white'}`}>
+                                 {pm.label}
+                               </span>
+                               {hasPerm && <Check className="w-3.5 h-3.5 ml-auto text-black" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                   </div>
+
+                   <button type="submit" disabled={saving} className="w-full h-16 rounded-[1.5rem] bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 mt-4 disabled:opacity-50">
+                      {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <ShieldCheck className="w-6 h-6" /> {editingId ? 'Salvar Alterações' : 'Concluir Provisionamento'} </>}
+                   </button>
+                </form>
+             </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

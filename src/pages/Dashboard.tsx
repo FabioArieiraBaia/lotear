@@ -168,74 +168,106 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-all"
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="glass-card p-6 rounded-[2rem] relative overflow-hidden group/stat hover:bg-white/[0.08] transition-all duration-500 shadow-2xl"
         >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-blue-400" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[50px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover/stat:bg-blue-500/20 transition-colors" />
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.15)] group-hover/stat:scale-110 transition-transform">
+              <Building2 className="w-6 h-6 text-blue-400" />
             </div>
-            <span className="text-xs text-neutral-400 uppercase tracking-wider">Total</span>
+            <div>
+               <h4 className="text-[10px] text-neutral-500 uppercase tracking-[0.2em] font-bold">Lotes Totais</h4>
+               <p className="text-3xl font-bold text-white font-heading">{stats.totalLotes}</p>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-white">{stats.totalLotes}</p>
-          <p className="text-xs text-neutral-500 mt-1">lotes cadastrados</p>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-neutral-400">Cadastrados no sistema</span>
+            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+               <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            </div>
+          </div>
         </motion.div>
 
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-all"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="glass-card p-6 rounded-[2rem] relative overflow-hidden group/stat hover:bg-white/[0.08] transition-all duration-500 shadow-2xl"
         >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-emerald-400" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[50px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover/stat:bg-emerald-500/20 transition-colors" />
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 flex items-center justify-center border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.15)] group-hover/stat:scale-110 transition-transform">
+              <CheckCircle className="w-6 h-6 text-emerald-400" />
             </div>
-            <span className="text-xs text-neutral-400 uppercase tracking-wider">Disponíveis</span>
+            <div>
+               <h4 className="text-[10px] text-neutral-500 uppercase tracking-[0.2em] font-bold">Disponíveis</h4>
+               <p className="text-3xl font-bold text-emerald-400 font-heading">{stats.disponiveis}</p>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-emerald-400">{stats.disponiveis}</p>
-          <p className="text-xs text-neutral-500 mt-1">prontos para vender</p>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-neutral-400">Prontos para venda</span>
+            <div className="w-8 h-8 rounded-full bg-emerald-500/5 flex items-center justify-center">
+               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            </div>
+          </div>
         </motion.div>
 
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-all"
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="glass-card p-6 rounded-[2rem] relative overflow-hidden group/stat hover:bg-white/[0.08] transition-all duration-500 shadow-2xl"
         >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-amber-400" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-[50px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover/stat:bg-amber-500/20 transition-colors" />
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.15)] group-hover/stat:scale-110 transition-transform">
+              <Clock className="w-6 h-6 text-amber-400" />
             </div>
-            <span className="text-xs text-neutral-400 uppercase tracking-wider">Reservados</span>
+            <div>
+               <h4 className="text-[10px] text-neutral-500 uppercase tracking-[0.2em] font-bold">Reservados</h4>
+               <p className="text-3xl font-bold text-amber-400 font-heading">{stats.reservados}</p>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-amber-400">{stats.reservados}</p>
-          <p className="text-xs text-neutral-500 mt-1">em negociação</p>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-neutral-400">Em negociação aberta</span>
+            <div className="w-8 h-8 rounded-full bg-amber-500/5 flex items-center justify-center">
+               <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            </div>
+          </div>
         </motion.div>
 
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-all"
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="glass-card p-6 rounded-[2rem] relative overflow-hidden group/stat hover:bg-white/[0.08] transition-all duration-500 shadow-2xl"
         >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-purple-400" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 blur-[50px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover/stat:bg-purple-500/20 transition-colors" />
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.15)] group-hover/stat:scale-110 transition-transform">
+              <TrendingUp className="w-6 h-6 text-purple-400" />
             </div>
-            <span className="text-xs text-neutral-400 uppercase tracking-wider">Receita</span>
+            <div>
+               <h4 className="text-[10px] text-neutral-500 uppercase tracking-[0.2em] font-bold">Receita Estimada</h4>
+               <p className="text-3xl font-bold text-purple-400 font-heading">
+                {stats.receita > 0 
+                  ? stats.receita.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+                  : 'R$ 0'
+                }
+               </p>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-purple-400">
-            {stats.receita > 0 
-              ? stats.receita.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-              : 'R$ 0'
-            }
-          </p>
-          <p className="text-xs text-neutral-500 mt-1">em vendas realizadas</p>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-neutral-400">Vendas concretizadas</span>
+            <div className="w-8 h-8 rounded-full bg-purple-500/5 flex items-center justify-center">
+               <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+            </div>
+          </div>
         </motion.div>
       </div>
 

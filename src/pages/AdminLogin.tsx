@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, Loader2, Map, ArrowLeft } from 'lucide-react';
+import { Shield, Loader2, Map, ArrowLeft, Lock, User, Globe, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function AdminLogin() {
@@ -31,113 +31,125 @@ export default function AdminLogin() {
         }
         navigate('/admin');
       } else {
-        setError('Usuário ou senha incorretos');
+        setError('Credenciais inválidas. Verifique seu login.');
       }
     } catch (err) {
-      setError('Erro ao conectar com o servidor');
+      setError('Falha na comunicação com o servidor de segurança.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Ambient background glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#050505] font-sans">
+      {/* Background Elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-500/5 blur-[150px] rounded-full pointer-events-none" />
       
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative bg-black/60 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-md w-full overflow-hidden"
+        transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+        className="relative z-10 w-full max-w-lg"
       >
-        {/* Animated border gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 opacity-50" />
-        
-        <div className="relative p-8">
-          {/* Back Button */}
-          <Link 
-            to="/" 
-            className="absolute top-4 left-4 flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all hover:scale-105"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-emerald-500/30 blur-xl rounded-full" />
-              <div className="relative bg-gradient-to-br from-emerald-500 to-emerald-700 p-4 rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.4)]">
-                <Shield className="w-8 h-8 text-white" />
-              </div>
-            </div>
+        {/* Back to Home HUD */}
+        <Link 
+          to="/" 
+          className="absolute -top-16 left-0 flex items-center gap-3 text-neutral-500 hover:text-white transition-all group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-black transition-all">
+             <ArrowLeft className="w-5 h-5" />
           </div>
+          <span className="text-[10px] font-black uppercase tracking-widest">Retornar ao Portal</span>
+        </Link>
 
-          <h2 className="text-2xl font-bold text-center text-white mb-2">Acesso Restrito</h2>
-          <p className="text-sm text-neutral-400 text-center mb-8">
-            Área administrativa do sistema
-          </p>
+        <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[3rem] p-12 shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden sidebar-glow">
+          {/* Subtle Glow Overlay */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[50px] rounded-full -translate-y-1/2 translate-x-1/2" />
           
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-sm mb-6 text-center"
-            >
-              {error}
-            </motion.div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">Usuário</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all"
-                placeholder="Digite seu usuário"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">Senha</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all"
-                placeholder="Digite sua senha"
-                required
-              />
+          <div className="relative">
+            {/* Header / Logo */}
+            <div className="flex flex-col items-center mb-12">
+               <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-2xl shadow-emerald-500/20 mb-6 group">
+                  <Shield className="w-10 h-10 text-white group-hover:scale-110 transition-transform" />
+               </div>
+               <div className="text-center">
+                  <h2 className="text-3xl font-bold text-white font-heading tracking-tight mb-2">Acesso <span className="text-emerald-500">Restrito</span></h2>
+                  <p className="text-neutral-500 text-sm font-medium">Autenticação de Segurança - Lotear SaaS</p>
+               </div>
             </div>
             
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full relative group overflow-hidden rounded-xl p-[1px] mt-6"
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-xl opacity-70 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative bg-black/50 backdrop-blur-md px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 group-hover:bg-transparent">
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest mb-8 text-center animate-pulse"
+              >
+                {error}
+              </motion.div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div>
+                <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-2">Identificação do Usuário</label>
+                <div className="relative">
+                   <User className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500/50" />
+                   <input
+                     type="text"
+                     value={username}
+                     onChange={(e) => setUsername(e.target.value)}
+                     className="w-full pl-14 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-neutral-700 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 font-bold transition-all"
+                     placeholder="E-mail ou Login"
+                     required
+                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-2">Chave de Segurança</label>
+                <div className="relative">
+                   <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500/50" />
+                   <input
+                     type="password"
+                     value={password}
+                     onChange={(e) => setPassword(e.target.value)}
+                     className="w-full pl-14 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-neutral-700 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 font-bold transition-all"
+                     placeholder="••••••••••••"
+                     required
+                   />
+                </div>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-16 rounded-[1.5rem] bg-emerald-500 text-black font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl shadow-emerald-500/20 mt-10"
+              >
                 {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    <span className="font-bold text-white tracking-wide">Entrar</span>
+                    <Zap className="w-4 h-4 fill-black" />
+                    Entrar no Sistema
                   </>
                 )}
-              </div>
-            </button>
-          </form>
+              </button>
+            </form>
 
-          {/* Brand footer */}
-          <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
-              <Map className="w-4 h-4 text-white" />
+            <div className="mt-12 pt-8 border-t border-white/5 flex flex-col items-center gap-4">
+               <div className="flex items-center gap-4 text-neutral-600">
+                  <div className="flex items-center gap-1.5 grayscale opacity-50">
+                     <Globe className="w-3.5 h-3.5" />
+                     <span className="text-[10px] font-bold uppercase tracking-widest italic">Encrypted Connection</span>
+                  </div>
+               </div>
+               <div className="flex items-center gap-2">
+                 <Map className="w-4 h-4 text-emerald-500" />
+                 <span className="text-xs font-bold text-neutral-500">
+                   LOTEAR<span className="text-white">PRO</span> <span className="text-[9px] text-neutral-600 font-medium ml-2">v2.0 Premium</span>
+                 </span>
+               </div>
             </div>
-            <span className="text-sm font-medium text-neutral-400">
-              Loteamentos<span className="text-emerald-500">Pro</span>
-            </span>
           </div>
         </div>
       </motion.div>

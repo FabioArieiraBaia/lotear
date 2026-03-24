@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight, Loader2, FileText, 
   Calendar, CreditCard, Users, AlertTriangle, CheckCircle, Clock, ChevronDown, 
-  ChevronUp, X, Check, Wallet, Building
+  ChevronUp, X, Check, Wallet, Building, Search, Filter, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -73,6 +73,7 @@ export default function Financeiro() {
   const [desconto, setDesconto] = useState('');
   const [forceQuitado, setForceQuitado] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -81,46 +82,44 @@ export default function Financeiro() {
   const fetchData = async () => {
     const token = localStorage.getItem('adminToken');
     try {
-      // Buscar resumo financeiro
-      const resResumo = await fetch(import.meta.env.BASE_URL + 'api/financeiro/resumo', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const [resResumo, resParcelas, resVendas] = await Promise.all([
+        fetch(import.meta.env.BASE_URL + 'api/financeiro/resumo', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(import.meta.env.BASE_URL + 'api/parcelas', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(import.meta.env.BASE_URL + 'api/financeiro/vendas', { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+
       if (resResumo.ok) {
-        const dataResumo = await resResumo.json();
-        setResumo(dataResumo);
+        const data = await resResumo.json();
+        setResumo(data);
       }
-
-      // Buscar todas as parcelas
-      const resParcelas = await fetch(import.meta.env.BASE_URL + 'api/parcelas', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      
       if (resParcelas.ok) {
-        const dataParcelas = await resParcelas.json();
-        setParcelas(dataParcelas);
+        const data = await resParcelas.json();
+        setParcelas(Array.isArray(data) ? data : []);
+      } else {
+        setParcelas([]);
       }
-
-      // Buscar vendas
-      const resVendas = await fetch(import.meta.env.BASE_URL + 'api/financeiro/vendas', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      
       if (resVendas.ok) {
-        const dataVendas = await resVendas.json();
-        setVendas(dataVendas);
+        const data = await resVendas.json();
+        setVendas(Array.isArray(data) ? data : []);
+      } else {
+        setVendas([]);
       }
 
       setLoading(false);
     } catch (err) {
       console.error("Error fetching data:", err);
+      setParcelas([]);
+      setVendas([]);
       setLoading(false);
     }
   };
 
   const handleRegistrarPagamento = async () => {
     if (!selectedParcela) return;
-    
     setProcessingPayment(true);
     const token = localStorage.getItem('adminToken');
-    
     try {
       const res = await fetch(import.meta.env.BASE_URL + 'api/pagamentos', {
         method: 'POST',
@@ -136,7 +135,7 @@ export default function Financeiro() {
           multa: parseFloat(multa) || 0,
           desconto: parseFloat(desconto) || 0,
           forceQuitado,
-          paymentMethod: paymentMethod,
+          paymentMethod,
           notes: paymentNotes
         })
       });
@@ -150,7 +149,7 @@ export default function Financeiro() {
         setMulta('');
         setDesconto('');
         setForceQuitado(false);
-        fetchData(); // Recarregar dados
+        fetchData();
       }
     } catch (err) {
       console.error('Erro ao registrar pagamento:', err);
@@ -161,164 +160,150 @@ export default function Financeiro() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <DollarSign className="w-6 h-6 text-emerald-500" />
+          </div>
+        </div>
       </div>
     );
   }
 
+  const filteredVendas = vendas.filter(v => 
+    v.loteName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (v.compradorNome && v.compradorNome.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    v.loteamentoName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const parcelasAtrasadas = parcelas.filter(p => {
     if (p.status === 'pago') return false;
-    const dueDate = new Date(p.dueDate);
-    return dueDate < new Date();
-  });
-
-  const parcelasEmDia = parcelas.filter(p => {
-    if (p.status === 'pago') return false;
-    const dueDate = new Date(p.dueDate);
-    return dueDate >= new Date();
+    return new Date(p.dueDate) < new Date();
   });
 
   const parcelasPagas = parcelas.filter(p => p.status === 'pago');
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">Módulo Financeiro</h2>
-        <p className="text-neutral-400">Controle de parcelas, pagamentos e comissões.</p>
+    <div className="container mx-auto pb-12 font-sans overflow-visible">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h2 className="text-4xl font-bold text-white mb-2 font-heading tracking-tight">Fluxo <span className="text-emerald-500">Financeiro</span></h2>
+          <p className="text-neutral-500 font-medium">Gestão inteligente de recebíveis, comissões e performance de vendas.</p>
+        </motion.div>
+        
+        <div className="flex gap-3">
+           <div className="relative group/search">
+             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within/search:text-emerald-500 transition-colors" />
+             <input 
+               type="text" 
+               placeholder="Buscar registros..."
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+               className="bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 min-w-[280px] transition-all"
+             />
+           </div>
+        </div>
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-5"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-emerald-400" />
+      {/* Cards de Resumo Estilo SaaS Premium */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {[
+          { label: 'Total Recebido', value: resumo?.totalRecebido, icon: Wallet, color: 'emerald', desc: 'Fluxo de caixa real' },
+          { label: 'VGV Projetado', value: resumo?.vgv, icon: TrendingUp, color: 'blue', desc: 'Valor bruto de vendas' },
+          { label: 'A Receber', value: resumo?.aReceber, icon: Clock, color: 'amber', desc: 'Projeção futura' },
+          { label: 'Inadimplência', value: resumo?.inadimplencia, icon: AlertTriangle, color: 'red', desc: 'Parcelas em atraso' }
+        ].map((card, idx) => (
+          <motion.div 
+            key={card.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            className="glass-card p-6 rounded-[2.5rem] relative overflow-hidden group hover:bg-white/[0.08] transition-all duration-500 overflow-hidden"
+          >
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-${card.color}-500/10 blur-[50px] rounded-full -translate-y-1/2 translate-x-1/2 transition-colors group-hover:bg-${card.color}-500/20`} />
+            <div className="flex items-center gap-4 mb-6">
+              <div className={`w-12 h-12 rounded-2xl bg-${card.color}-500/20 flex items-center justify-center border border-${card.color}-500/20 shadow-lg group-hover:scale-110 transition-transform`}>
+                <card.icon className={`w-6 h-6 text-${card.color}-400`} />
+              </div>
+              <div>
+                 <h4 className="text-[10px] text-neutral-500 uppercase tracking-[0.2em] font-bold">{card.label}</h4>
+                 <p className={`text-2xl font-bold text-white font-heading`}>{formatCurrency(card.value || 0)}</p>
+              </div>
             </div>
-            <span className="text-emerald-400 text-xs font-medium">Recebido</span>
-          </div>
-          <p className="text-neutral-400 text-xs mb-1">Total Recebido</p>
-          <h3 className="text-2xl font-bold text-white">{formatCurrency(resumo?.totalRecebido || 0)}</h3>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-5"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-blue-400" />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-neutral-400 font-medium">{card.desc}</span>
+              <div className={`w-1.5 h-1.5 rounded-full bg-${card.color}-500 animate-pulse`} />
             </div>
-            <span className="text-blue-400 text-xs font-medium">VGV</span>
-          </div>
-          <p className="text-neutral-400 text-xs mb-1">Valor Geral de Vendas</p>
-          <h3 className="text-2xl font-bold text-white">{formatCurrency(resumo?.vgv || 0)}</h3>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-5"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-amber-400" />
-            </div>
-            <span className="text-amber-400 text-xs font-medium">A Receber</span>
-          </div>
-          <p className="text-neutral-400 text-xs mb-1">Parcelas Pendentes</p>
-          <h3 className="text-2xl font-bold text-white">{formatCurrency(resumo?.aReceber || 0)}</h3>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-5"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-red-400" />
-            </div>
-            <span className="text-red-400 text-xs font-medium">Atrasado</span>
-          </div>
-          <p className="text-neutral-400 text-xs mb-1">Inadimplência</p>
-          <h3 className="text-2xl font-bold text-white">{formatCurrency(resumo?.inadimplencia || 0)}</h3>
-        </motion.div>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Cards de Comissões */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-5"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-              <Users className="w-5 h-5 text-purple-400" />
-            </div>
-            <span className="text-purple-400 text-xs font-medium">Comissões</span>
-          </div>
-          <div className="flex justify-between items-end">
-            <div>
-              <p className="text-neutral-400 text-xs mb-1">A Pagar</p>
-              <h3 className="text-2xl font-bold text-white">{formatCurrency(resumo?.comissoesPendentes || 0)}</h3>
-            </div>
-            <div className="text-right">
-              <p className="text-neutral-400 text-xs mb-1">Pagas</p>
-              <h3 className="text-xl font-bold text-neutral-400">{formatCurrency(resumo?.comissoesPagas || 0)}</h3>
-            </div>
-          </div>
-        </motion.div>
+      {/* Comissões - Card Largo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+            className="bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 rounded-[2.5rem] p-8 relative flex flex-col sm:flex-row items-center gap-8 group"
+          >
+             <div className="w-16 h-16 rounded-3xl bg-purple-500/20 flex items-center justify-center border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.1)] group-hover:scale-110 transition-transform">
+                <Users className="w-8 h-8 text-purple-400" />
+             </div>
+             <div className="flex-1 text-center sm:text-left">
+                <h4 className="text-purple-400 text-xs font-bold uppercase tracking-widest mb-1">Gestão de Comissões</h4>
+                <div className="flex flex-col sm:flex-row sm:items-end gap-1 sm:gap-4">
+                   <h3 className="text-3xl font-bold text-white font-heading">{formatCurrency(resumo?.comissoesPendentes || 0)}</h3>
+                   <span className="text-neutral-500 text-sm mb-1.5">A pagar para corretores</span>
+                </div>
+             </div>
+             <div className="h-px w-full sm:h-12 sm:w-px bg-white/10" />
+             <div className="text-center sm:text-right">
+                <p className="text-neutral-500 text-[10px] uppercase font-bold tracking-widest mb-1">Total Liquidado</p>
+                <p className="text-xl font-bold text-white/50 font-mono">{formatCurrency(resumo?.comissoesPagas || 0)}</p>
+             </div>
+          </motion.div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-5"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-cyan-400" />
-            </div>
-            <span className="text-cyan-400 text-xs font-medium">Parcelas</span>
-          </div>
-          <div className="flex justify-between items-end">
-            <div>
-              <p className="text-neutral-400 text-xs mb-1">Pagas</p>
-              <h3 className="text-2xl font-bold text-white">{parcelasPagas.length}</h3>
-            </div>
-            <div className="text-right">
-              <p className="text-neutral-400 text-xs mb-1">Pendentes</p>
-              <h3 className="text-xl font-bold text-neutral-400">{parcelasEmDia.length + parcelasAtrasadas.length}</h3>
-            </div>
-          </div>
-        </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            className="bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 rounded-[2.5rem] p-8 flex items-center gap-8 group"
+          >
+             <div className="w-16 h-16 rounded-3xl bg-cyan-500/20 flex items-center justify-center border border-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.1)] group-hover:scale-110 transition-transform">
+                <CreditCard className="w-8 h-8 text-cyan-400" />
+             </div>
+             <div className="flex-1">
+                <h4 className="text-cyan-400 text-xs font-bold uppercase tracking-widest mb-1">Snapshot de Parcelas</h4>
+                <div className="flex items-center gap-4">
+                   <div>
+                      <p className="text-3xl font-bold text-white font-heading">{parcelasPagas.length}</p>
+                      <p className="text-neutral-500 text-[10px] uppercase font-bold tracking-widest">Quitadas</p>
+                   </div>
+                   <ArrowRight className="text-neutral-600 w-4 h-4" />
+                   <div>
+                      <p className="text-3xl font-bold text-white font-heading">{parcelas.length - parcelasPagas.length}</p>
+                      <p className="text-neutral-500 text-[10px] uppercase font-bold tracking-widest">Pendentes</p>
+                   </div>
+                </div>
+             </div>
+          </motion.div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      {/* Tabs Modernas */}
+      <div className="bg-white/[0.02] backdrop-blur-3xl border border-white/5 rounded-[3rem] p-3 mb-8 inline-flex gap-2">
         {[
           { id: 'vendas', label: 'Vendas', icon: FileText },
-          { id: 'parcelas', label: 'Parcelas Pendentes', icon: CreditCard },
-          { id: 'pagamentos', label: 'Histórico de Pagamentos', icon: CheckCircle }
+          { id: 'parcelas', label: 'Pendências', icon: CreditCard },
+          { id: 'pagamentos', label: 'Histórico', icon: CheckCircle }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-8 py-4 rounded-[2.2rem] text-sm font-bold transition-all duration-300 ${
               activeTab === tab.id 
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                : 'bg-white/5 text-neutral-400 border border-white/10 hover:bg-white/10'
+                ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' 
+                : 'text-neutral-500 hover:text-white hover:bg-white/5'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -327,63 +312,83 @@ export default function Financeiro() {
         ))}
       </div>
 
-      {/* Conteúdo das Tabs */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+      {/* Tabela Master */}
+      <motion.div 
+        layout
+        className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl sidebar-glow"
+      >
         <AnimatePresence mode="wait">
           {activeTab === 'vendas' && (
             <motion.div
               key="vendas"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-8"
             >
-              <div className="p-6 border-b border-white/10 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-white">Vendas Realizadas</h3>
-                <div className="flex items-center gap-2 text-sm text-neutral-400">
-                  <Building className="w-4 h-4" />
-                  {vendas.length} vendas cadastradas
+              <div className="flex justify-between items-center mb-8 px-2">
+                <h3 className="text-xl font-bold text-white font-heading tracking-tight">Vendas Registradas</h3>
+                <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-full text-[10px] uppercase font-bold tracking-widest border border-emerald-500/20">
+                  <Building className="w-3.5 h-3.5" /> {vendas.length} Registros
                 </div>
               </div>
               
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-separate border-spacing-y-2">
                   <thead>
-                    <tr className="bg-white/5 text-neutral-400 text-sm">
-                      <th className="p-4 font-medium">Lote</th>
-                      <th className="p-4 font-medium">Loteamento</th>
-                      <th className="p-4 font-medium">Comprador</th>
-                      <th className="p-4 font-medium">Valor Total</th>
-                      <th className="p-4 font-medium">Entrada</th>
-                      <th className="p-4 font-medium">Parcelas</th>
-                      <th className="p-4 font-medium">Status</th>
+                    <tr className="text-neutral-500 text-[10px] uppercase tracking-widest font-bold">
+                      <th className="px-6 py-4">Identificação</th>
+                      <th className="px-6 py-4">Loteamento</th>
+                      <th className="px-6 py-4">Comprador</th>
+                      <th className="px-6 py-4">Total</th>
+                      <th className="px-6 py-4">Entrada</th>
+                      <th className="px-6 py-4">Plano</th>
+                      <th className="px-6 py-4 text-center">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {vendas.length === 0 ? (
+                  <tbody className="space-y-4">
+                    {filteredVendas.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-neutral-500">
-                          Nenhuma venda registrada ainda.
+                        <td colSpan={7} className="py-20 text-center text-neutral-600 italic">
+                          Ops! Nenhum registro encontrado para sua busca.
                         </td>
                       </tr>
                     ) : (
-                      vendas.map(venda => (
-                        <tr key={venda.id} className="hover:bg-white/5 transition-colors text-sm text-neutral-300">
-                          <td className="p-4 font-medium text-white">{venda.loteName}</td>
-                          <td className="p-4">{venda.loteamentoName}</td>
-                          <td className="p-4 font-medium text-emerald-400">{venda.compradorNome || '-'}</td>
-                          <td className="p-4 text-white font-mono">{formatCurrency(venda.valorTotal)}</td>
-                          <td className="p-4 text-emerald-400 font-mono">{formatCurrency(venda.entrada)}</td>
-                          <td className="p-4">{venda.totalParcelas}x de {formatCurrency(venda.valorParcela)}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      filteredVendas.map((venda, idx) => (
+                        <motion.tr 
+                          key={venda.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: idx * 0.05 }}
+                          className="group hover:bg-white/5 transition-all duration-300"
+                        >
+                          <td className="px-6 py-5 rounded-l-[1.5rem] font-bold text-white group-hover:text-emerald-400 transition-colors">{venda.loteName}</td>
+                          <td className="px-6 py-5 text-neutral-400 text-sm font-medium">{venda.loteamentoName}</td>
+                          <td className="px-6 py-5">
+                             <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 flex items-center justify-center text-[10px] font-bold text-emerald-500 border border-emerald-500/10">
+                                   {venda.compradorNome?.charAt(0) || 'C'}
+                                </div>
+                                <span className="text-white font-bold text-sm tracking-tight">{venda.compradorNome || '-'}</span>
+                             </div>
+                          </td>
+                          <td className="px-6 py-5 text-white font-mono font-bold">{formatCurrency(venda.valorTotal)}</td>
+                          <td className="px-6 py-5 text-emerald-500 font-mono font-bold text-sm">{formatCurrency(venda.entrada)}</td>
+                          <td className="px-6 py-5">
+                             <span className="text-neutral-400 text-xs font-mono">{venda.totalParcelas}x de</span>
+                             <p className="text-white font-bold text-sm">{formatCurrency(venda.valorParcela)}</p>
+                          </td>
+                          <td className="px-6 py-5 rounded-r-[1.5rem] text-center">
+                            <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                               venda.statusPagamento === 'quitado' 
-                                ? 'bg-emerald-500/20 text-emerald-400' 
-                                : 'bg-amber-500/20 text-amber-400'
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                             }`}>
-                              {venda.statusPagamento === 'quitado' ? 'Quitado' : 'Pendente'}
+                              {venda.statusPagamento === 'quitado' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                              {venda.statusPagamento === 'quitado' ? 'Liquidado' : 'Aberto'}
                             </span>
                           </td>
-                        </tr>
+                        </motion.tr>
                       ))
                     )}
                   </tbody>
@@ -395,77 +400,84 @@ export default function Financeiro() {
           {activeTab === 'parcelas' && (
             <motion.div
               key="parcelas"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-8"
             >
-              <div className="p-6 border-b border-white/10 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-white">Controle de Parcelas</h3>
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="flex items-center gap-1 text-red-400">
-                    <AlertTriangle className="w-4 h-4" />
-                    {parcelasAtrasadas.length} atrasadas
-                  </span>
-                  <span className="flex items-center gap-1 text-emerald-400">
-                    <CheckCircle className="w-4 h-4" />
-                    {parcelasPagas.length} pagas
-                  </span>
+              <div className="flex justify-between items-center mb-8 px-2">
+                <h3 className="text-xl font-bold text-white font-heading tracking-tight text-glow">Gestão de Pendências</h3>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5 text-red-400 bg-red-500/10 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-red-500/20">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    {parcelasAtrasadas.length} Atrasadas
+                  </div>
                 </div>
               </div>
               
-              {/* Tabela de Parcelas Pendentes e Atrasadas */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-separate border-spacing-y-2">
                   <thead>
-                    <tr className="bg-white/5 text-neutral-400 text-sm">
-                      <th className="p-4 font-medium">Parcela</th>
-                      <th className="p-4 font-medium">Lote</th>
-                      <th className="p-4 font-medium">Comprador</th>
-                      <th className="p-4 font-medium">Vencimento</th>
-                      <th className="p-4 font-medium">Valor</th>
-                      <th className="p-4 font-medium">Status</th>
-                      <th className="p-4 font-medium text-right">Ação</th>
+                    <tr className="text-neutral-500 text-[10px] uppercase tracking-widest font-bold">
+                      <th className="px-6 py-4">Contrato / Parcela</th>
+                      <th className="px-6 py-4">Lote / Plano</th>
+                      <th className="px-6 py-4">Responsável</th>
+                      <th className="px-6 py-4">Vencimento</th>
+                      <th className="px-6 py-4">Valor Nominal</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-right">Controle</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {[...parcelasAtrasadas, ...parcelasEmDia].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map(parcela => {
-                      const isAtrasado = parcela.status === 'atrasado' || new Date(parcela.dueDate) < new Date();
+                  <tbody className="space-y-4">
+                    {[...parcelasAtrasadas, ...parcelas.filter(p => !parcelasAtrasadas.includes(p) && p.status !== 'pago')].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map((parcela, idx) => {
+                      const isAtrasado = new Date(parcela.dueDate) < new Date();
                       return (
-                        <tr key={parcela.id} className="hover:bg-white/5 transition-colors text-sm text-neutral-300">
-                          <td className="p-4 font-medium text-white">{parcela.installmentNumber}/{parcela.totalInstallments}</td>
-                          <td className="p-4">{parcela.loteName}</td>
-                          <td className="p-4 text-emerald-400 font-medium">{parcela.buyerName}</td>
-                          <td className="p-4">{formatDate(parcela.dueDate)}</td>
-                          <td className="p-4 font-mono text-emerald-400">{formatCurrency(parcela.amount)}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              isAtrasado ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'
+                        <motion.tr 
+                          key={parcela.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                          className="group hover:bg-white/5 transition-all duration-300"
+                        >
+                          <td className="px-6 py-5 rounded-l-[1.5rem] font-bold text-white">
+                             <div className="text-sm">Parc. {parcela.installmentNumber}/{parcela.totalInstallments}</div>
+                             <div className="text-[10px] text-neutral-500 font-mono">ID: #{parcela.id}</div>
+                          </td>
+                          <td className="px-6 py-5">
+                             <div className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors uppercase">{parcela.loteName}</div>
+                             <div className="text-[10px] text-neutral-500 font-medium">{parcela.loteamentoName}</div>
+                          </td>
+                          <td className="px-6 py-5">
+                             <div className="text-emerald-400 font-bold text-sm">{parcela.buyerName}</div>
+                          </td>
+                          <td className="px-6 py-5">
+                             <div className={`text-sm font-bold flex items-center gap-1.5 ${isAtrasado ? 'text-red-400' : 'text-neutral-400'}`}>
+                                <Calendar className="w-3.5 h-3.5" /> {formatDate(parcela.dueDate)}
+                             </div>
+                          </td>
+                          <td className="px-6 py-5 font-mono text-white font-bold">{formatCurrency(parcela.amount)}</td>
+                          <td className="px-6 py-5">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                              isAtrasado ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                             }`}>
-                              {isAtrasado ? 'Atrasada' : 'Pendente'}
+                              {isAtrasado ? 'Atrasada' : 'Em Aberto'}
                             </span>
                           </td>
-                          <td className="p-4 text-right">
+                          <td className="px-6 py-5 rounded-r-[1.5rem] text-right">
                             <button
                               onClick={() => {
                                 setSelectedParcela(parcela);
                                 setPaymentAmount(parcela.amount.toString());
                                 setShowPaymentModal(true);
                               }}
-                              className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg transition-colors text-xs font-medium"
+                              className="px-4 py-2 bg-emerald-500 text-black rounded-xl hover:scale-105 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20"
                             >
-                              Baixar Parcela
+                              Dar Baixa
                             </button>
                           </td>
-                        </tr>
+                        </motion.tr>
                       );
                     })}
-                    {[...parcelasAtrasadas, ...parcelasEmDia].length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="p-8 text-center text-neutral-500">
-                          Nenhuma parcela pendente ou atrasada.
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
@@ -475,56 +487,69 @@ export default function Financeiro() {
           {activeTab === 'pagamentos' && (
             <motion.div
               key="pagamentos"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-8"
             >
-              <div className="p-6 border-b border-white/10 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-white">Histórico de Pagamentos</h3>
-                <div className="flex items-center gap-2 text-sm text-neutral-400">
-                  <CheckCircle className="w-4 h-4" />
-                  {resumo?.ultimosPagamentos?.length || 0} registros
+              <div className="flex justify-between items-center mb-8 px-2">
+                <h3 className="text-xl font-bold text-white font-heading tracking-tight">Timeline de Recebimento</h3>
+                <div className="flex items-center gap-2 bg-blue-500/10 text-blue-400 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border border-blue-500/20 shadow-blue-500/5 shadow-lg">
+                  <TrendingUp className="w-3.5 h-3.5" /> {resumo?.ultimosPagamentos?.length || 0} Registrados
                 </div>
               </div>
               
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-separate border-spacing-y-2">
                   <thead>
-                    <tr className="bg-white/5 text-neutral-400 text-sm">
-                      <th className="p-4 font-medium">Data</th>
-                      <th className="p-4 font-medium">Lote</th>
-                      <th className="p-4 font-medium">Comprador</th>
-                      <th className="p-4 font-medium">Tipo</th>
-                      <th className="p-4 font-medium">Valor</th>
-                      <th className="p-4 font-medium">Observações</th>
+                    <tr className="text-neutral-500 text-[10px] uppercase tracking-widest font-bold">
+                      <th className="px-6 py-4">Data/Hora</th>
+                      <th className="px-6 py-4">Lote / Ativo</th>
+                      <th className="px-6 py-4">Operação</th>
+                      <th className="px-6 py-4">Valor Bruto</th>
+                      <th className="px-6 py-4">Meio de Pagamento</th>
+                      <th className="px-6 py-4">Notas Internas</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="space-y-4">
                     {(!resumo?.ultimosPagamentos || resumo.ultimosPagamentos.length === 0) ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-neutral-500">
-                          Nenhum pagamento registrado.
-                        </td>
+                        <td colSpan={6} className="py-20 text-center text-neutral-600 italic">Nada por aqui ainda.</td>
                       </tr>
                     ) : (
-                      resumo.ultimosPagamentos.map((pagamento) => (
-                        <tr key={pagamento.id} className="hover:bg-white/5 transition-colors text-sm text-neutral-300">
-                          <td className="p-4">{formatDate(pagamento.paidAt)}</td>
-                          <td className="p-4 font-medium text-white">{pagamento.loteName}</td>
-                          <td className="p-4">-</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              pagamento.type === 'sinal' ? 'bg-emerald-500/20 text-emerald-400' :
-                              pagamento.type === 'parcela' ? 'bg-blue-500/20 text-blue-400' :
-                              'bg-purple-500/20 text-purple-400'
+                      resumo.ultimosPagamentos.map((pagamento, idx) => (
+                        <motion.tr 
+                          key={pagamento.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: idx * 0.05 }}
+                          className="group hover:bg-white/5 transition-all duration-300"
+                        >
+                          <td className="px-6 py-5 rounded-l-[1.5rem] font-bold text-white">
+                             <div className="text-sm">{formatDate(pagamento.paidAt)}</div>
+                             <div className="text-[10px] text-neutral-500 font-medium">#{pagamento.id}</div>
+                          </td>
+                          <td className="px-6 py-5">
+                             <div className="text-sm font-bold text-white uppercase">{pagamento.loteName}</div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                              pagamento.type === 'sinal' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                              pagamento.type === 'parcela' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
+                              'bg-purple-500/10 text-purple-500 border border-purple-500/20'
                             }`}>
-                              {pagamento.type === 'sinal' ? 'Sinal' : 
-                               pagamento.type === 'parcela' ? 'Parcela' : 'Comissão'}
+                              {pagamento.type === 'sinal' ? 'Sinal / Entrada' : 
+                               pagamento.type === 'parcela' ? 'Parcela Mensal' : 'Repasse Comissão'}
                             </span>
                           </td>
-                          <td className="p-4 text-emerald-400 font-mono">{formatCurrency(pagamento.amount)}</td>
-                          <td className="p-4 text-neutral-500 text-xs">{pagamento.notes || '-'}</td>
-                        </tr>
+                          <td className="px-6 py-5 text-emerald-500 font-mono font-bold text-lg">{formatCurrency(pagamento.amount)}</td>
+                          <td className="px-6 py-5">
+                             <div className="flex items-center gap-2 text-white/70 text-sm font-bold uppercase tracking-tighter">
+                                <CreditCard className="w-3.5 h-3.5" /> {pagamento.paymentMethod || 'PIX'}
+                             </div>
+                          </td>
+                          <td className="px-6 py-5 rounded-r-[1.5rem] text-neutral-500 text-xs italic font-medium max-w-xs truncate">{pagamento.notes || 'Sem observações'}</td>
+                        </motion.tr>
                       ))
                     )}
                   </tbody>
@@ -533,233 +558,120 @@ export default function Financeiro() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
-      {/* Modal de Pagamento */}
+      {/* Modal de Pagamento - SaaS Design */}
       <AnimatePresence>
         {showPaymentModal && selectedParcela && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowPaymentModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-neutral-900 border border-white/10 rounded-2xl p-6 w-full max-w-md"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-white">Registrar Pagamento</h3>
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="text-neutral-400 hover:text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-white/5 rounded-lg p-4">
-                  <p className="text-sm text-neutral-400 mb-1">Parcela</p>
-                  <p className="text-white font-medium">
-                    {selectedParcela.installmentNumber}/{selectedParcela.totalInstallments} - {selectedParcela.loteName}
-                  </p>
-                  <p className="text-sm text-neutral-400 mt-2">
-                    Comprador: <span className="text-white">{selectedParcela.buyerName}</span>
-                  </p>
-                  <p className="text-sm text-neutral-400">
-                    Vencimento: <span className="text-white">{formatDate(selectedParcela.dueDate)}</span>
-                  </p>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowPaymentModal(false)} />
+             <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="bg-neutral-900 border border-white/10 rounded-[3rem] p-10 w-full max-w-xl relative overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                onClick={(e) => e.stopPropagation()}
+             >
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
+                
+                <div className="flex items-center justify-between mb-10">
+                  <div>
+                     <h3 className="text-2xl font-bold text-white font-heading tracking-tight">Baixa de Título</h3>
+                     <p className="text-neutral-500 text-sm font-medium mt-1">Confirmação de recebimento bancário</p>
+                  </div>
+                  <button onClick={() => setShowPaymentModal(false)} className="w-12 h-12 rounded-2xl bg-white/5 text-neutral-500 hover:bg-red-500/20 hover:text-red-500 transition-all flex items-center justify-center">
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-neutral-400 mb-2">Acréscimos (Juros R$)</label>
-                    <input
-                      type="number"
-                      value={juros}
-                      onChange={(e) => setJuros(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500/50"
-                      placeholder="0.00"
-                      step="0.01"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-neutral-400 mb-2">Multa (R$)</label>
-                    <input
-                      type="number"
-                      value={multa}
-                      onChange={(e) => setMulta(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500/50"
-                      placeholder="0.00"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-neutral-400 mb-2">Descontos (- R$)</label>
-                    <input
-                      type="number"
-                      value={desconto}
-                      onChange={(e) => setDesconto(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500/50"
-                      placeholder="0.00"
-                      step="0.01"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-neutral-400 mb-2">Total Calculado</label>
-                    <div className="w-full bg-black/20 border border-white/5 rounded-lg px-4 py-2 text-emerald-400 font-mono flex items-center h-[42px]">
-                      {formatCurrency(
-                        (selectedParcela.amount || 0) + 
-                        (parseFloat(juros) || 0) + 
-                        (parseFloat(multa) || 0) - 
-                        (parseFloat(desconto) || 0)
-                      )}
+                <div className="space-y-8">
+                  <div className="bg-white/5 border border-white/5 rounded-3xl p-6">
+                    <div className="flex justify-between items-start mb-4">
+                       <div>
+                          <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-1">Contrato / Lote</p>
+                          <p className="text-white font-bold text-lg">{selectedParcela.loteName}</p>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-1">Parcela</p>
+                          <p className="text-white font-bold text-lg">{selectedParcela.installmentNumber}/{selectedParcela.totalInstallments}</p>
+                       </div>
+                    </div>
+                    <div className="flex gap-4 pt-4 border-t border-white/5">
+                       <div className="flex-1">
+                          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Titular</p>
+                          <p className="text-emerald-400 font-bold text-sm">{selectedParcela.buyerName}</p>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Vencimento Original</p>
+                          <p className="text-white font-bold text-sm tracking-tight">{formatDate(selectedParcela.dueDate)}</p>
+                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-2">Valor Efetivamente Pago pelo Cliente</label>
-                  <input
-                    type="number"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 font-bold"
-                    placeholder="Valor"
-                    step="0.01"
-                  />
-                  <div className="mt-3 flex items-start gap-2">
-                    <input 
-                      type="checkbox" 
-                      id="forceQuitado"
-                      checked={forceQuitado}
-                      onChange={(e) => setForceQuitado(e.target.checked)}
-                      className="mt-1 rounded border-white/10 text-emerald-500 focus:ring-emerald-500/50 bg-black/20 w-4 h-4 cursor-pointer"
-                    />
-                    <label htmlFor="forceQuitado" className="text-xs text-neutral-400 cursor-pointer">
-                      Dar baixa/Quitar esta parcela (mesmo em caso de desconto ou pagamento parcial)
-                    </label>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                       <div>
+                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Juros / Multas (+ R$)</label>
+                          <input type="number" value={juros} onChange={(e) => setJuros(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm" placeholder="0.00" />
+                       </div>
+                       <div>
+                          <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Descontos (- R$)</label>
+                          <input type="number" value={desconto} onChange={(e) => setDesconto(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm" placeholder="0.00" />
+                       </div>
+                    </div>
+
+                    <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-6 flex flex-col justify-center items-center">
+                       <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-widest mb-2">Total Ajustado</p>
+                       <p className="text-3xl font-bold text-emerald-400 font-heading">
+                          {formatCurrency(
+                            (selectedParcela.amount || 0) + 
+                            (parseFloat(juros) || 0) + 
+                            (parseFloat(multa) || 0) - 
+                            (parseFloat(desconto) || 0)
+                          )}
+                       </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
+                    <div>
+                      <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Valor Final Recebido</label>
+                      <input
+                        type="number"
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold text-xl font-heading shadow-inner"
+                        placeholder="R$ 0.00"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                       <label className="block text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 px-1">Método</label>
+                       <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold text-sm tracking-wider uppercase bg-neutral-900">
+                         <option value="pix">PIX / Instantâneo</option>
+                         <option value="dinheiro">Espécie / Dinheiro</option>
+                         <option value="boleto">Boleto Bancário</option>
+                         <option value="transferencia">Transferência / TED</option>
+                         <option value="cartao">Cartão Débito/Crédito</option>
+                       </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <input type="checkbox" id="forceQuitado" checked={forceQuitado} onChange={(e) => setForceQuitado(e.target.checked)} className="w-5 h-5 rounded-lg border-white/10 text-emerald-500 focus:ring-emerald-500/20 bg-neutral-900 cursor-pointer" />
+                    <label htmlFor="forceQuitado" className="text-xs text-neutral-400 cursor-pointer select-none leading-relaxed">Considerar parcela como <strong>TOTALMENTE QUITADA</strong> (mesmo em pagamentos parciais ou bonificações).</label>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-2">Forma de Pagamento</label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50"
-                  >
-                    <option value="pix">PIX</option>
-                    <option value="dinheiro">Dinheiro</option>
-                    <option value="boleto">Boleto</option>
-                    <option value="transferencia">Transferência</option>
-                    <option value="cartao">Cartão</option>
-                  </select>
+                <div className="flex gap-4 mt-12">
+                   <button onClick={handleRegistrarPagamento} disabled={processingPayment} className="flex-[2] h-16 rounded-[1.5rem] bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 group disabled:opacity-50">
+                      {processingPayment ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <Check className="w-6 h-6 group-hover:scale-125 transition-transform" /> Confirmar Recebimento </>}
+                   </button>
                 </div>
-
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-2">Observações</label>
-                  <textarea
-                    value={paymentNotes}
-                    onChange={(e) => setPaymentNotes(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 resize-none"
-                    placeholder="Observações opcionais"
-                    rows={2}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="flex-1 px-4 py-3 rounded-lg bg-white/5 text-neutral-400 hover:bg-white/10 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleRegistrarPagamento}
-                  disabled={processingPayment}
-                  className="flex-1 px-4 py-3 rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {processingPayment ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Check className="w-5 h-5" />
-                      Confirmar
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+             </motion.div>
+          </div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-// Componente Card de Parcela
-function ParcelaCard({ parcela, onPay, paid = false, isLate = false }: { 
-  parcela: Parcela; 
-  onPay?: () => void; 
-  paid?: boolean;
-  isLate?: boolean;
-  key?: React.Key;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div 
-      className={`rounded-lg p-3 transition-colors cursor-pointer ${
-        paid 
-          ? 'bg-emerald-500/10 border border-emerald-500/20' 
-          : isLate
-            ? 'bg-red-500/10 border border-red-500/20 hover:bg-red-500/20'
-            : 'bg-white/5 border border-white/10 hover:bg-white/10'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className={`text-sm font-medium ${
-          paid ? 'text-emerald-400' : isLate ? 'text-red-400' : 'text-white'
-        }`}>
-          {parcela.installmentNumber}/{parcela.totalInstallments}
-        </span>
-        <span className="text-sm text-emerald-400 font-mono">
-          {formatCurrency(parcela.amount)}
-        </span>
-      </div>
-      
-      <p className="text-xs text-neutral-300 truncate">{parcela.loteName}</p>
-      <p className="text-xs text-neutral-500 truncate">{parcela.buyerName}</p>
-      
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-        <span className={`text-xs ${
-          paid ? 'text-emerald-400' : isLate ? 'text-red-400' : 'text-amber-400'
-        }`}>
-          {paid ? `Pago em ${formatDate(parcela.paidAt || '')}` : `Vence ${formatDate(parcela.dueDate)}`}
-        </span>
-        
-        {!paid && onPay && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPay();
-            }}
-            className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded hover:bg-emerald-500/30 transition-colors"
-          >
-            Pagar
-          </button>
-        )}
-      </div>
     </div>
   );
 }

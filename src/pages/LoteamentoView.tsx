@@ -5,7 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
-import { Loader2, ArrowLeft, Plus, Image as ImageIcon, MapPin, Maximize, Trash2, Check, X, Navigation, Save, Layers } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Image as ImageIcon, MapPin, Maximize, Trash2, Check, X, Navigation, Save, Layers, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjs from 'pdfjs-dist';
 import { resolveUrl } from '../utils/url';
@@ -109,7 +109,7 @@ function EditablePolygon({ lote, isActive, onClick, onEdit }: { key?: any, lote:
       ref={polygonRef}
       positions={mapCoordinates(lote.polygon)}
       pathOptions={{ 
-        color: isActive ? '#000' : color, 
+        color: isActive ? '#fff' : color, 
         fillColor: color,
         fillOpacity: isActive ? 0.7 : 0.4,
         weight: isActive ? 3 : 2,
@@ -131,7 +131,6 @@ export default function LoteamentoView() {
   const [activeLote, setActiveLote] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [parcelas, setParcelas] = useState<any[]>([]);
   const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
   const [convertingPdf, setConvertingPdf] = useState(false);
 
@@ -185,7 +184,7 @@ export default function LoteamentoView() {
           const pdf = await loadingTask.promise;
           const page = await pdf.getPage(1);
           
-          const viewport = page.getViewport({ scale: 2.0 }); // Use high scale for quality
+          const viewport = page.getViewport({ scale: 2.0 }); 
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           
@@ -215,11 +214,10 @@ export default function LoteamentoView() {
 
   const handleSaveLote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeLote || saving) return; // Prevenir múltiplos cliques
+    if (!activeLote || saving) return;
     setSaving(true);
     const token = localStorage.getItem('adminToken');
     try {
-      // Salvar dados do lote
       await fetch(import.meta.env.BASE_URL + `api/lotes/${activeLote.id}`, {
         method: 'PUT',
         headers: { 
@@ -245,7 +243,6 @@ export default function LoteamentoView() {
         })
       });
       
-      // Se está sendo vendido e tem parcelas, gerar as parcelas
       if ((activeLote.status === 'Vendido' || activeLote.status === 'Reservado') && activeLote.installments > 0) {
         await fetch(import.meta.env.BASE_URL + `api/parcelas/generate/${activeLote.id}`, {
           method: 'POST',
@@ -263,7 +260,6 @@ export default function LoteamentoView() {
         });
       }
       
-      // Se voltou para Disponível, limpar dados financeiros
       if (activeLote.status === 'Disponível' || activeLote.status === 'Livre') {
         await fetch(import.meta.env.BASE_URL + `api/financeiro/lote/${activeLote.id}`, {
           method: 'DELETE',
@@ -375,14 +371,14 @@ export default function LoteamentoView() {
 
   if (loading || !loteamento || (loteamento.imageUrl?.toLowerCase().endsWith('.pdf') && convertingPdf)) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[100vh] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="flex items-center justify-center h-full min-h-[100vh] bg-black">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <Loader2 className="w-12 h-12 animate-spin text-emerald-400 mx-auto mb-4" />
-          <p className="text-gray-400">
+          <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mx-auto mb-4" />
+          <p className="text-neutral-500 font-medium">
             {convertingPdf ? 'Processando planta PDF...' : 'Carregando loteamento...'}
           </p>
         </motion.div>
@@ -391,20 +387,20 @@ export default function LoteamentoView() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      {/* Sidebar */}
+    <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-black font-sans">
+      {/* Sidebar - Using new design tokens */}
       <motion.div 
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className={`w-full md:w-96 bg-gray-900/80 backdrop-blur-xl border-r border-white/10 shadow-2xl z-20 flex flex-col transition-transform duration-300 ${activeLote ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        className={`w-full md:w-[420px] bg-white/[0.03] backdrop-blur-3xl border-r border-white/10 shadow-2xl z-20 flex flex-col transition-transform duration-300 ${activeLote ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
-        <div className="p-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-900/50 to-teal-900/50">
-          <Link to="/" className="text-emerald-400 hover:text-emerald-300 flex items-center gap-2 font-medium transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Voltar
+        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-transparent">
+          <Link to="/admin" className="text-emerald-400 hover:text-emerald-300 flex items-center gap-2 font-bold transition-all hover:-translate-x-1">
+            <ArrowLeft className="w-5 h-5" /> Painel
           </Link>
           <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-emerald-400" />
-            <h2 className="font-bold text-white truncate max-w-[200px]">{loteamento.name}</h2>
+            <MapPin className="w-5 h-5 text-emerald-500" />
+            <h2 className="font-bold text-white truncate max-w-[220px] font-heading">{loteamento.name}</h2>
           </div>
         </div>
 
@@ -412,94 +408,97 @@ export default function LoteamentoView() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex-1 overflow-y-auto p-6"
+            className="flex-1 overflow-y-auto p-8 custom-scrollbar"
           >
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-start mb-8">
               <div>
-                <h3 className="text-xl font-bold text-white">Editar Lote</h3>
-                <p className="text-sm text-gray-400 mt-1">{activeLote.name}</p>
+                <h3 className="text-2xl font-bold text-white font-heading tracking-tight">Editar Lote</h3>
+                <p className="text-sm text-neutral-500 mt-1 uppercase tracking-widest font-bold">{activeLote.name}</p>
               </div>
-              <button onClick={() => { setActiveLote(null); setShowDeleteConfirm(false); }} className="text-gray-500 hover:text-gray-300 md:hidden transition-colors">
-                <X className="w-6 h-6" />
+              <button onClick={() => { setActiveLote(null); setShowDeleteConfirm(false); }} className="p-2 rounded-xl bg-white/5 text-neutral-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveLote} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Identificação</label>
-                <input
-                  type="text"
-                  value={activeLote.name}
-                  onChange={(e) => setActiveLote({ ...activeLote, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-800/50 border border-white/10 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-white placeholder-gray-500 transition-all"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
-                <select
-                  value={activeLote.status}
-                  onChange={(e) => setActiveLote({ ...activeLote, status: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-800/50 border border-white/10 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-white transition-all"
-                >
-                  <option value="Disponível" className="bg-gray-800">Disponível</option>
-                  <option value="Reservado" className="bg-gray-800">Reservado</option>
-                  <option value="Vendido" className="bg-gray-800">Vendido</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSaveLote} className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Área (m²)</label>
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-2">Identificação</label>
+                  <input
+                    type="text"
+                    value={activeLote.name}
+                    onChange={(e) => setActiveLote({ ...activeLote, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:ring-emerald-500/50 focus:border-emerald-500 text-white placeholder-neutral-600 transition-all font-medium"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-2">Status</label>
+                  <select
+                    value={activeLote.status}
+                    onChange={(e) => setActiveLote({ ...activeLote, status: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:ring-emerald-500/50 focus:border-emerald-500 text-white transition-all font-medium"
+                  >
+                    <option value="Disponível" className="bg-neutral-900">Disponível</option>
+                    <option value="Reservado" className="bg-neutral-900">Reservado</option>
+                    <option value="Vendido" className="bg-neutral-900">Vendido</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-2">Área (m²)</label>
                   <input
                     type="text"
                     value={activeLote.area}
                     onChange={(e) => setActiveLote({ ...activeLote, area: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-800/50 border border-white/10 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-white placeholder-gray-500 transition-all"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:ring-emerald-500/50 focus:border-emerald-500 text-white placeholder-neutral-600 transition-all font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Valor (R$)</label>
+                  <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-2">Valor (R$)</label>
                   <input
                     type="number"
                     value={activeLote.price || ''}
                     onChange={(e) => setActiveLote({ ...activeLote, price: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-gray-800/50 border border-white/10 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-white placeholder-gray-500 transition-all"
-                    placeholder="150.000"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:ring-emerald-500/50 focus:border-emerald-500 text-white placeholder-neutral-600 transition-all font-mono"
+                    placeholder="0.00"
                   />
                 </div>
               </div>
 
               {(activeLote.status === 'Vendido' || activeLote.status === 'Reservado') && (
-                <div className="p-4 bg-gray-800/50 rounded-lg border border-white/10 space-y-4">
-                  <h4 className="font-medium text-white border-b border-white/10 pb-2">Dados da Venda</h4>
+                <div className="p-6 bg-white/[0.03] rounded-3xl border border-white/5 space-y-5">
+                  <h4 className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-widest mb-4">
+                    <DollarSign className="w-4 h-4 text-emerald-500" /> Detalhes Comerciais
+                  </h4>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Nome do Comprador</label>
-                      <input
-                        type="text"
-                        value={activeLote.buyerName || ''}
-                        onChange={(e) => setActiveLote({ ...activeLote, buyerName: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
-                      />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-2">Comprador</label>
+                        <input
+                          type="text"
+                          value={activeLote.buyerName || ''}
+                          onChange={(e) => setActiveLote({ ...activeLote, buyerName: e.target.value })}
+                          className="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-2">CPF</label>
+                        <input
+                          type="text"
+                          value={activeLote.buyerCpf || ''}
+                          onChange={(e) => setActiveLote({ ...activeLote, buyerCpf: e.target.value })}
+                          className="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-sm"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">CPF do Comprador</label>
-                      <input
-                        type="text"
-                        value={activeLote.buyerCpf || ''}
-                        onChange={(e) => setActiveLote({ ...activeLote, buyerCpf: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
-                      />
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Corretor Responsável</label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-2">
+                    <div>
+                      <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-2">Corretor / Taxa %</label>
+                      <div className="flex gap-2">
                         <select
                           value={activeLote.corretorId || ''}
                           onChange={(e) => {
@@ -511,229 +510,139 @@ export default function LoteamentoView() {
                               commissionRate: corretor ? corretor.commissionRate : activeLote.commissionRate
                             });
                           }}
-                          className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
+                          className="flex-1 px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-sm"
                         >
-                          <option value="">Selecione um corretor</option>
+                          <option value="">Selecione...</option>
                           {corretores.map((corretor) => (
-                            <option key={corretor.id} value={corretor.id} className="bg-gray-800">
-                              {corretor.name} {corretor.creci ? `- CRECI: ${corretor.creci}` : ''}
+                            <option key={corretor.id} value={corretor.id} className="bg-neutral-900">
+                              {corretor.name}
                             </option>
                           ))}
                         </select>
-                      </div>
-                      <div>
-                        <div className="relative">
+                        <div className="w-24 relative">
                           <input
                             type="number"
                             step="0.1"
                             value={activeLote.commissionRate !== undefined && activeLote.commissionRate !== null ? (activeLote.commissionRate * 100).toFixed(1) : ''}
                             onChange={(e) => setActiveLote({ ...activeLote, commissionRate: parseFloat(e.target.value) / 100 })}
-                            placeholder="Comissão %"
-                            className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white pr-8"
+                            className="w-full px-3 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-sm pr-7"
                           />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 text-[10px]">%</span>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Valor da Entrada (R$)</label>
-                      <input
-                        type="number"
-                        value={activeLote.downPayment || ''}
-                        onChange={(e) => setActiveLote({ ...activeLote, downPayment: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Nº de Parcelas</label>
-                      <input
-                        type="number"
-                        value={activeLote.installments || ''}
-                        onChange={(e) => setActiveLote({ ...activeLote, installments: parseInt(e.target.value) || 1 })}
-                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Data da Venda</label>
-                      <input
-                        type="date"
-                        value={activeLote.saleDate || new Date().toISOString().split('T')[0]}
-                        onChange={(e) => setActiveLote({ ...activeLote, saleDate: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">Status do Pagamento</label>
-                      <select
-                        value={activeLote.paymentStatus || 'pendente'}
-                        onChange={(e) => setActiveLote({ ...activeLote, paymentStatus: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-700/50 border border-white/10 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm text-white"
-                      >
-                        <option value="pendente" className="bg-gray-800">Pendente</option>
-                        <option value="em_dia" className="bg-gray-800">Em Dia</option>
-                        <option value="atrasado" className="bg-gray-800">Atrasado</option>
-                        <option value="quitado" className="bg-gray-800">Quitado</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Resumo do financiamento */}
-                  {activeLote.price > 0 && activeLote.installments > 0 && (
-                    <div className="mt-4 p-3 bg-emerald-900/20 border border-emerald-500/30 rounded-lg">
-                      <h5 className="text-sm font-medium text-emerald-400 mb-2">Resumo do Financiamento</h5>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-300">
-                        <span>Valor do Lote:</span>
-                        <span className="text-white font-mono">R$ {(activeLote.price || 0).toLocaleString('pt-BR')}</span>
-                        <span>Entrada:</span>
-                        <span className="text-white font-mono">R$ {(activeLote.downPayment || 0).toLocaleString('pt-BR')}</span>
-                        <span>Valor a Financiar:</span>
-                        <span className="text-white font-mono">R$ {((activeLote.price || 0) - (activeLote.downPayment || 0)).toLocaleString('pt-BR')}</span>
-                        <span>Parcelas ({activeLote.installments}x):</span>
-                        <span className="text-emerald-400 font-mono">R$ {(((activeLote.price || 0) - (activeLote.downPayment || 0)) / (activeLote.installments || 1)).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-2">Entrada (R$)</label>
+                        <input
+                          type="number"
+                          value={activeLote.downPayment || ''}
+                          onChange={(e) => setActiveLote({ ...activeLote, downPayment: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-sm"
+                        />
                       </div>
-                      {activeLote.corretorId && (
-                        <div className="mt-2 pt-2 border-t border-white/10 text-xs">
-                          {(() => {
-                            const corretor = corretores.find(c => c.id === parseInt(activeLote.corretorId));
-                            if (corretor) {
-                              const rate = activeLote.commissionRate !== undefined && activeLote.commissionRate !== null ? activeLote.commissionRate : (corretor.commissionRate || 0.05);
-                              const comissao = (activeLote.price || 0) * rate;
-                              return (
-                                <div className="grid grid-cols-2 gap-2 text-gray-300">
-                                  <span>Corretor:</span>
-                                  <span className="text-white">{corretor.name}</span>
-                                  <span>Comissão ({(rate * 100).toFixed(1)}%):</span>
-                                  <span className="text-amber-400 font-mono">R$ {comissao.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
-                                </div>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
-                      )}
+                      <div>
+                        <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-2">Nº Parcelas</label>
+                        <input
+                          type="number"
+                          value={activeLote.installments || ''}
+                          onChange={(e) => setActiveLote({ ...activeLote, installments: parseInt(e.target.value) || 1 })}
+                          className="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-sm"
+                        />
+                      </div>
                     </div>
-                  )}
+
+                    {/* Resumo Glow */}
+                    {activeLote.price > 0 && activeLote.installments > 0 && (
+                      <div className="mt-6 p-5 bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-[2rem] shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]">
+                        <h5 className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3">Plano de Pagamento</h5>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-neutral-400">Total Financiar:</span>
+                            <span className="text-white font-bold">R$ {((activeLote.price || 0) - (activeLote.downPayment || 0)).toLocaleString('pt-BR')}</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-emerald-500/5 p-2 rounded-lg border border-emerald-500/10">
+                            <span className="text-emerald-400 font-bold">{activeLote.installments}x de:</span>
+                            <span className="text-emerald-400 text-lg font-bold font-mono">
+                               R$ {(((activeLote.price || 0) - (activeLote.downPayment || 0)) / (activeLote.installments || 1)).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Foto do Lote</label>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative overflow-hidden group">
-                  {activeLote.photoUrl ? (
-                    <div className="absolute inset-0 w-full h-full">
-                      <img src={resolveUrl(activeLote.photoUrl)} alt="Lote" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-white text-sm font-medium flex items-center gap-1">
-                          <ImageIcon className="w-4 h-4" /> Trocar
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1 text-center">
-                      <ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
-                      <div className="flex text-sm text-gray-600 justify-center">
-                        <span className="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500">
-                          Adicionar foto
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                  />
+              <div className="space-y-4">
+                <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Multimídia & Notas</label>
+                <div className="grid grid-cols-1 gap-4">
+                   <div className="aspect-video bg-white/[0.03] border border-white/5 rounded-3xl overflow-hidden group/photo relative cursor-pointer">
+                      {activeLote.photoUrl ? (
+                         <img src={resolveUrl(activeLote.photoUrl)} alt="Lote" className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500" />
+                      ) : (
+                         <div className="w-full h-full flex flex-col items-center justify-center text-neutral-600">
+                            <ImageIcon className="w-8 h-8 mb-2 opacity-20" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Sem Foto</span>
+                         </div>
+                      )}
+                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={handlePhotoUpload} />
+                   </div>
+                   <textarea
+                     value={activeLote.notes}
+                     onChange={(e) => setActiveLote({ ...activeLote, notes: e.target.value })}
+                     rows={3}
+                     className="w-full px-5 py-4 bg-white/[0.03] border border-white/5 rounded-3xl text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-emerald-500/50 resize-none transition-all"
+                     placeholder="Anotações internas..."
+                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Anotações</label>
-                <textarea
-                  value={activeLote.notes}
-                  onChange={(e) => setActiveLote({ ...activeLote, notes: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 resize-none"
-                  placeholder="Detalhes sobre o terreno, negociação, etc."
-                />
-              </div>
-
-              <div className="pt-4 flex gap-2">
+              <div className="pt-6 flex gap-3">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                  className="flex-1 h-14 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-2xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 group"
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Salvar
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                  Salvar Alterações
                 </button>
                 
-                {showDeleteConfirm ? (
-                  <div className="flex items-center gap-2 bg-red-50 p-1 rounded-md border border-red-200">
-                    <button
-                      type="button"
-                      onClick={handleDeleteLote}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded"
-                    >
-                      Excluir
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteConfirm(false)}
-                      className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium rounded"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded-md transition-colors"
-                    title="Excluir Lote"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+                <button
+                   type="button"
+                   onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+                   className={`w-14 h-14 rounded-2xl border transition-all flex items-center justify-center ${showDeleteConfirm ? 'bg-red-500 border-red-500 text-white' : 'bg-white/5 border-white/10 text-red-400 hover:bg-red-500/10'}`}
+                >
+                   {showDeleteConfirm ? <Check onClick={handleDeleteLote} className="w-6 h-6" /> : <Trash2 className="w-5 h-5" />}
+                </button>
               </div>
             </form>
           </motion.div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-gray-400">
-            <div className="w-16 h-16 bg-gray-800/50 backdrop-blur rounded-full flex items-center justify-center mb-4 border border-white/10">
-              <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-              </svg>
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+            <div className="w-24 h-24 bg-white/[0.03] rounded-full flex items-center justify-center mb-8 border border-white/10 relative">
+               <div className="absolute inset-0 bg-emerald-500/10 blur-xl animate-pulse rounded-full" />
+               <Navigation className="w-10 h-10 text-emerald-500 relative z-10" />
             </div>
-            <p className="text-lg font-medium text-white mb-2">Nenhum lote selecionado</p>
-            <p className="text-sm mb-6">Clique em um lote no mapa para visualizar e editar suas informações.</p>
+            <h3 className="text-2xl font-bold text-white mb-2 font-heading tracking-tight">Otimize a Gestão</h3>
+            <p className="text-neutral-500 text-sm max-w-[280px] leading-relaxed">Clique em um lote no mapa interativo ao lado para gerenciar vendas, pagamentos e fotos.</p>
             
-            <div className="bg-emerald-900/30 text-emerald-300 p-4 rounded-lg text-sm text-left mb-8 border border-emerald-500/20 backdrop-blur">
-              <p className="font-semibold mb-1">Ferramentas do Mapa:</p>
-              <ul className="list-disc pl-4 space-y-1">
-                <li>Use o ícone de polígono na esquerda para desenhar novos lotes.</li>
-                <li>Use o ícone de edição para ajustar os pontos de um lote existente.</li>
-              </ul>
-            </div>
-
-            <div className="w-full text-left">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Legenda</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-gray-300">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div> Disponível
-                </div>
-                <div className="flex items-center gap-2 text-gray-300">
-                  <div className="w-3 h-3 rounded-full bg-amber-500"></div> Reservado
-                </div>
-                <div className="flex items-center gap-2 text-gray-300">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div> Vendido
-                </div>
+            <div className="mt-12 space-y-4 w-full">
+              <h4 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest text-left px-2">Guia de Cores</h4>
+              <div className="grid grid-cols-3 gap-2">
+                 <div className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase">Livre</span>
+                 </div>
+                 <div className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
+                    <span className="text-[10px] font-bold text-amber-400 uppercase">Reserva</span>
+                 </div>
+                 <div className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                    <span className="text-[10px] font-bold text-red-400 uppercase">Venda</span>
+                 </div>
               </div>
             </div>
           </div>
@@ -741,7 +650,7 @@ export default function LoteamentoView() {
       </motion.div>
 
       {/* Map Area */}
-      <div className="flex-1 relative bg-gray-900">
+      <div className="flex-1 relative bg-black">
         <MapContainer 
           crs={L.CRS.Simple} 
           bounds={IMAGE_BOUNDS} 
