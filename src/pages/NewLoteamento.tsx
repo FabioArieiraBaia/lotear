@@ -5,12 +5,10 @@ import { UploadCloud, Loader2, ArrowLeft, Building2, Sparkles, CheckCircle2, Ale
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjs from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  import.meta.env.BASE_URL + 'pdf.worker.min.js',
-  import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 export default function NewLoteamento() {
   const [name, setName] = useState('');
@@ -120,7 +118,7 @@ export default function NewLoteamento() {
 
       <div className="max-w-4xl mx-auto relative z-10">
         {/* Top Navigation */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="mb-12"
@@ -133,20 +131,20 @@ export default function NewLoteamento() {
 
         {/* Hero Header */}
         <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="mb-12 text-center md:text-left"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12 text-center md:text-left"
         >
-           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">
-              <Sparkles className="w-3 h-3 fill-emerald-400" />
-              SaaS Engine Modernization
-           </div>
-           <h1 className="text-5xl md:text-6xl font-black font-heading tracking-tighter leading-none mb-4 italic uppercase">
-              Novo <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500 italic">Empreendimento</span>
-           </h1>
-           <p className="text-neutral-500 text-lg font-medium max-w-xl">
-              Configure os parâmetros geodata e masterplan para iniciar a gestão inteligente de vendas.
-           </p>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">
+            <Sparkles className="w-3 h-3 fill-emerald-400" />
+            SaaS Engine Modernization
+          </div>
+          <h1 className="text-5xl md:text-6xl font-black font-heading tracking-tighter leading-none mb-4 italic uppercase">
+            Novo <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500 italic">Empreendimento</span>
+          </h1>
+          <p className="text-neutral-500 text-lg font-medium max-w-xl">
+            Configure os parâmetros geodata e masterplan para iniciar a gestão inteligente de vendas.
+          </p>
         </motion.div>
 
         {/* Main Form Card */}
@@ -160,7 +158,7 @@ export default function NewLoteamento() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
 
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               className="bg-red-500/10 border border-red-500/20 text-red-400 p-5 rounded-3xl mb-10 flex items-center gap-4 text-sm font-bold uppercase tracking-widest"
@@ -177,15 +175,15 @@ export default function NewLoteamento() {
                 Identificação do Projeto
               </label>
               <div className="relative group">
-                 <Building2 className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-600 group-focus-within:text-emerald-500 transition-colors" />
-                 <input
-                   type="text"
-                   value={name}
-                   onChange={(e) => setName(e.target.value)}
-                   className="w-full bg-white/5 border border-white/10 rounded-[2rem] pl-16 pr-8 py-6 text-white text-xl font-bold placeholder-neutral-800 focus:outline-none focus:border-emerald-500 focus:bg-white/[0.05] transition-all"
-                   placeholder="Ex: Condomínio Royal Sunset"
-                   required
-                 />
+                <Building2 className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-600 group-focus-within:text-emerald-500 transition-colors" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-[2rem] pl-16 pr-8 py-6 text-white text-xl font-bold placeholder-neutral-800 focus:outline-none focus:border-emerald-500 focus:bg-white/[0.05] transition-all"
+                  placeholder="Ex: Condomínio Royal Sunset"
+                  required
+                />
               </div>
             </div>
 
@@ -194,45 +192,45 @@ export default function NewLoteamento() {
               <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-[0.4em] px-1">
                 Visualização de Engenharia (Planta PDF/IMG)
               </label>
-              
+
               <div className={`relative mt-2 border-2 border-dashed rounded-[3rem] transition-all overflow-hidden min-h-[340px] flex flex-col items-center justify-center ${preview ? 'border-emerald-500/30' : 'border-white/10 hover:border-white/20 hover:bg-white/[0.02]'} group`}>
                 <AnimatePresence mode="wait">
                   {preview ? (
-                    <motion.div 
-                       key="preview"
-                       initial={{ opacity: 0, scale: 0.9 }}
-                       animate={{ opacity: 1, scale: 1 }}
-                       exit={{ opacity: 0, scale: 0.9 }}
-                       className="absolute inset-0 w-full h-full flex flex-col"
+                    <motion.div
+                      key="preview"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="absolute inset-0 w-full h-full flex flex-col"
                     >
                       <div className="flex-1 overflow-hidden p-6">
                         <img src={preview} alt="Masterplan Preview" className="w-full h-full object-contain rounded-2xl grayscale group-hover:grayscale-0 transition-all duration-700" />
                       </div>
-                      
+
                       {/* Meta Information Overlay */}
                       <div className="p-6 bg-black/60 backdrop-blur-xl border-t border-white/10 flex items-center justify-between">
-                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                            </div>
-                            <div>
-                               <p className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">{isPdf ? 'Documento PDF Digitalizado' : 'Mapa de Pixels Detectado'}</p>
-                               <p className="text-xs font-bold text-neutral-400 truncate max-w-[200px]">{file?.name}</p>
-                            </div>
-                         </div>
-                         <button type="button" onClick={() => {setPreview(null); setFile(null);}} className="text-[10px] font-black uppercase text-red-400 hover:text-white transition-colors border-b border-red-400/20">Descartar</button>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">{isPdf ? 'Documento PDF Digitalizado' : 'Mapa de Pixels Detectado'}</p>
+                            <p className="text-xs font-bold text-neutral-400 truncate max-w-[200px]">{file?.name}</p>
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => { setPreview(null); setFile(null); }} className="text-[10px] font-black uppercase text-red-400 hover:text-white transition-colors border-b border-red-400/20">Descartar</button>
                       </div>
                     </motion.div>
                   ) : (
-                    <motion.div 
+                    <motion.div
                       key="empty"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       className="text-center p-12 space-y-6"
                     >
                       <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 group-hover:border-emerald-500/30 transition-all duration-500 relative">
-                         <div className="absolute inset-0 bg-emerald-500/20 blur-2xl opacity-0 group-hover:opacity-40 transition-opacity" />
-                         <UploadCloud className="w-10 h-10 text-neutral-700 group-hover:text-emerald-500 relative z-10" />
+                        <div className="absolute inset-0 bg-emerald-500/20 blur-2xl opacity-0 group-hover:opacity-40 transition-opacity" />
+                        <UploadCloud className="w-10 h-10 text-neutral-700 group-hover:text-emerald-500 relative z-10" />
                       </div>
                       <div className="space-y-2">
                         <p className="text-xl font-bold text-white tracking-tight italic">Arraste a planta para digitalizar</p>
@@ -244,7 +242,7 @@ export default function NewLoteamento() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                
+
                 <input
                   type="file"
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
@@ -256,30 +254,30 @@ export default function NewLoteamento() {
 
             {/* Submit Button */}
             <div className="pt-6">
-               <button
-                 type="submit"
-                 disabled={loading || !file || !name}
-                 className="relative w-full h-20 bg-emerald-500 hover:bg-emerald-400 disabled:bg-neutral-800 disabled:text-neutral-600 text-black font-black uppercase tracking-[0.3em] text-xs rounded-[2rem] transition-all shadow-[0_20px_50px_rgba(16,185,129,0.25)] group active:scale-[0.98] overflow-hidden"
-               >
-                 {loading ? (
-                   <div className="flex items-center justify-center gap-4">
-                     <Loader2 className="w-6 h-6 animate-spin" />
-                     Processando Dados Geográficos...
-                   </div>
-                 ) : (
-                   <div className="flex items-center justify-center gap-3">
-                     <UploadCloud className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
-                     Finalizar Upload do Masterplan
-                   </div>
-                 )}
-                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-[85%] transition-transform duration-500" />
-               </button>
+              <button
+                type="submit"
+                disabled={loading || !file || !name}
+                className="relative w-full h-20 bg-emerald-500 hover:bg-emerald-400 disabled:bg-neutral-800 disabled:text-neutral-600 text-black font-black uppercase tracking-[0.3em] text-xs rounded-[2rem] transition-all shadow-[0_20px_50px_rgba(16,185,129,0.25)] group active:scale-[0.98] overflow-hidden"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-4">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                    Processando Dados Geográficos...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-3">
+                    <UploadCloud className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
+                    Finalizar Upload do Masterplan
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-[85%] transition-transform duration-500" />
+              </button>
             </div>
           </form>
         </motion.div>
 
         {/* Info Footer */}
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}

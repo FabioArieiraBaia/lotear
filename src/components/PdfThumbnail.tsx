@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import { Loader2 } from 'lucide-react';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Setup worker — use local copy from /public/pdf.worker.min.js
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  import.meta.env.BASE_URL + 'pdf.worker.min.js',
-  window.location.origin
-).href;
+// Setup worker — use native Vite module to prevent MIME type issues
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface PdfThumbnailProps {
   url: string;
@@ -26,12 +24,12 @@ export default function PdfThumbnail({ url, alt, className = "", scale = 0.5 }: 
         const loadingTask = pdfjs.getDocument(url);
         const pdf = await loadingTask.promise;
         if (!active) return;
-        
+
         const page = await pdf.getPage(1);
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        
+
         if (context) {
           canvas.height = viewport.height;
           canvas.width = viewport.width;

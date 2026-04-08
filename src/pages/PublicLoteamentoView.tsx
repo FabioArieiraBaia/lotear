@@ -4,16 +4,17 @@ import { useParams, Link } from 'react-router-dom';
 import { MapContainer, ImageOverlay, Polygon, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { 
-  Loader2, ArrowLeft, Image as ImageIcon, MapPin, Maximize, 
-  Info, CheckCircle2, Navigation, X, MessageCircle, Phone, 
+import {
+  Loader2, ArrowLeft, Image as ImageIcon, MapPin, Maximize,
+  Info, CheckCircle2, Navigation, X, MessageCircle, Phone,
   Clock, Shield, Sparkles, Zap, Globe, Target, MonitorPlay
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjs from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(import.meta.env.BASE_URL + 'pdf.worker.min.js', window.location.origin).href;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 function MapEvents({ onMapClick }: { onMapClick: () => void }) {
   useMapEvents({
@@ -45,8 +46,8 @@ function ReadOnlyPolygon({ lote, isActive, isHovered, onClick, onHover, onUnhove
   return (
     <Polygon
       positions={mapCoordinates(lote.polygon)}
-      pathOptions={{ 
-        color: highlighted ? '#ffffff' : color, 
+      pathOptions={{
+        color: highlighted ? '#ffffff' : color,
         fillColor: highlighted ? '#ffffff' : color,
         fillOpacity: highlighted ? 0.4 : 0.1,
         weight: highlighted ? 3 : 1,
@@ -130,21 +131,22 @@ export default function PublicLoteamentoView() {
     }
   }, [loteamento?.imageUrl]);
 
-  // Fetch midias when activeLote changes
+  // Fetch midias when activeLote or hoveredLote changes
   useEffect(() => {
-    if (!activeLote?.id) {
+    const loteId = activeLote?.id || hoveredLote?.id;
+    if (!loteId) {
       setMidias([]);
       return;
     }
     (async () => {
       setLoadingMidia(true);
       try {
-        const res = await fetch(import.meta.env.BASE_URL + `api/lotes/${activeLote.id}/midia`);
+        const res = await fetch(import.meta.env.BASE_URL + `api/lotes/${loteId}/midia`);
         if (res.ok) setMidias(await res.json());
       } catch (err) { console.error(err); }
       finally { setLoadingMidia(false); }
     })();
-  }, [activeLote?.id]);
+  }, [activeLote?.id, hoveredLote?.id]);
 
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,7 +183,7 @@ export default function PublicLoteamentoView() {
         <div className="relative">
           <div className="w-20 h-20 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
           <div className="absolute inset-0 flex items-center justify-center">
-             <Target className="w-8 h-8 text-emerald-500 animate-pulse" />
+            <Target className="w-8 h-8 text-emerald-500 animate-pulse" />
           </div>
         </div>
       </div>
@@ -212,19 +214,19 @@ export default function PublicLoteamentoView() {
     <div className="relative h-screen w-screen overflow-hidden bg-[#050505] font-sans selection:bg-emerald-500/30">
       {/* HUD Header */}
       <div className="absolute top-6 left-6 right-6 md:right-auto z-[1000] pointer-events-none flex items-center gap-4">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="pointer-events-auto flex items-center justify-center w-12 h-12 rounded-2xl bg-white/5 backdrop-blur-3xl border border-white/10 text-white hover:bg-emerald-500 hover:text-black transition-all hover:scale-105 shadow-2xl shrink-0"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="pointer-events-auto px-6 py-3 rounded-2xl bg-white/5 backdrop-blur-3xl border border-white/10 text-white shadow-2xl flex items-center gap-4 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20">
-             <Navigation className="w-5 h-5 text-emerald-400" />
+            <Navigation className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
-             <h1 className="font-bold tracking-tight text-lg leading-none mb-1 truncate">{loteamento.name}</h1>
-             <p className="text-[9px] text-neutral-500 uppercase font-black tracking-widest leading-none">Planta Georeferenciada</p>
+            <h1 className="font-bold tracking-tight text-lg leading-none mb-1 truncate">{loteamento.name}</h1>
+            <p className="text-[9px] text-neutral-500 uppercase font-black tracking-widest leading-none">Planta Georeferenciada</p>
           </div>
         </div>
       </div>
@@ -240,85 +242,85 @@ export default function PublicLoteamentoView() {
               exit={{ opacity: 0, x: 50, filter: 'blur(10px)' }}
               className="pointer-events-auto bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-1 shadow-[0_0_80px_rgba(0,0,0,0.8)] text-white overflow-y-auto max-h-[85vh] w-full relative group sidebar-glow custom-scrollbar"
             >
-               <div className="p-8 space-y-8 flex flex-col">
-                 <div className="flex justify-between items-start">
-                    <div>
-                       <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${getStatusGradient(displayLote.status)} border mb-4 shadow-lg`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${getStatusDot(displayLote.status)} animate-pulse`} />
-                          <span className="text-[10px] font-black uppercase tracking-widest">{displayLote.status}</span>
-                       </div>
-                       <h2 className="text-4xl font-bold tracking-tight font-heading leading-tight uppercase">{displayLote.name}</h2>
+              <div className="p-8 space-y-8 flex flex-col">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${getStatusGradient(displayLote.status)} border mb-4 shadow-lg`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${getStatusDot(displayLote.status)} animate-pulse`} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">{displayLote.status}</span>
                     </div>
-                    {displayLote.area && (
-                       <div className="text-right">
-                          <p className="text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-1">Área</p>
-                          <p className="text-2xl font-bold text-white font-heading">{displayLote.area} m²</p>
-                       </div>
-                    )}
-                 </div>
-                  <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl flex flex-col">
-                     {midias.length > 0 ? (
-                        <div className="w-full h-full flex gap-2 overflow-x-auto p-2 custom-scrollbar scroll-smooth snap-x">
-                           {midias.map((m, idx) => (
-                              <div key={m.id} className="flex-shrink-0 w-full h-full snap-center relative group/img">
-                                 {m.type === 'image' ? (
-                                    <img src={resolveUrl(m.url)} className="w-full h-full object-cover rounded-2xl" alt={`Slide ${idx}`} />
-                                 ) : (
-                                    <div className="w-full h-full bg-red-500/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer" onClick={() => window.open(m.url, '_blank')}>
-                                       <MonitorPlay className="w-12 h-12 text-red-500 mb-2" />
-                                       <span className="text-[10px] font-black text-red-500 uppercase">Assistir Tour Virtual</span>
-                                    </div>
-                                 )}
-                              </div>
-                           ))}
-                        </div>
-                     ) : (
-                        displayLote.photoUrl ? (
-                           <img src={resolveUrl(displayLote.photoUrl)} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
-                        ) : (
-                           <div className="flex flex-col items-center justify-center h-full text-neutral-800">
-                              <ImageIcon className="w-12 h-12 mb-2" />
-                              <span className="text-[10px] font-black uppercase tracking-widest">Sem Registro Fotográfico</span>
-                           </div>
-                        )
-                     )}
-                     <motion.div initial={{ top: '-10%' }} animate={{ top: '110%' }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="absolute left-0 w-full h-px bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)] z-10 pointer-events-none" />
-                     <Link to={`/lote/${displayLote.id}`} className="absolute inset-0 z-20"></Link>
+                    <h2 className="text-4xl font-bold tracking-tight font-heading leading-tight uppercase">{displayLote.name}</h2>
                   </div>
-
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/5 p-5 rounded-[1.5rem] border border-white/5">
-                       <MapPin className="w-4 h-4 text-emerald-500 mb-3" />
-                       <p className="text-[9px] text-neutral-500 uppercase font-black mb-1">Localização</p>
-                       <p className="text-sm font-bold text-white leading-tight uppercase">{loteamento.name}</p>
+                  {displayLote.area && (
+                    <div className="text-right">
+                      <p className="text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-1">Área</p>
+                      <p className="text-2xl font-bold text-white font-heading">{displayLote.area} m²</p>
                     </div>
-                    <div className="bg-white/5 p-5 rounded-[1.5rem] border border-white/5">
-                       <Maximize className="w-4 h-4 text-emerald-500 mb-3" />
-                       <p className="text-[9px] text-neutral-500 uppercase font-black mb-1">VGV Sugerido</p>
-                       <p className="text-sm font-bold text-emerald-400 leading-tight">Consulte-nos</p>
+                  )}
+                </div>
+                <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl flex flex-col">
+                  {midias.length > 0 ? (
+                    <div className="w-full h-full flex gap-2 overflow-x-auto p-2 custom-scrollbar scroll-smooth snap-x">
+                      {midias.map((m, idx) => (
+                        <div key={m.id} className="flex-shrink-0 w-full h-full snap-center relative group/img">
+                          {m.type === 'image' ? (
+                            <img src={resolveUrl(m.url)} className="w-full h-full object-cover rounded-2xl" alt={`Slide ${idx}`} />
+                          ) : (
+                            <div className="w-full h-full bg-red-500/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer" onClick={() => window.open(m.url, '_blank')}>
+                              <MonitorPlay className="w-12 h-12 text-red-500 mb-2" />
+                              <span className="text-[10px] font-black text-red-500 uppercase">Assistir Tour Virtual</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                 </div>
-
-                 <div className="space-y-4">
-                    {displayLote.status === 'Disponível' ? (
-                       <Link 
-                         to={`/lote/${displayLote.id}`}
-                         className="w-full py-5 bg-emerald-500 text-black font-black uppercase text-xs tracking-[0.3em] rounded-2xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
-                       >
-                          <Zap className="w-5 h-5 fill-black" /> Saber Mais & Fotos
-                       </Link>
+                  ) : (
+                    displayLote.photoUrl ? (
+                      <img src={resolveUrl(displayLote.photoUrl)} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
                     ) : (
-                       <div className="w-full py-5 bg-white/5 border border-white/10 text-neutral-600 font-black uppercase text-xs tracking-[0.3em] rounded-2xl text-center">
-                          Unidade Indisponível
-                       </div>
-                    )}
-                    <button 
-                      onClick={() => setActiveLote(null)}
-                      className="w-full py-4 text-neutral-600 hover:text-white text-[9px] font-black uppercase tracking-widest transition-colors"
+                      <div className="flex flex-col items-center justify-center h-full text-neutral-800">
+                        <ImageIcon className="w-12 h-12 mb-2" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Sem Registro Fotográfico</span>
+                      </div>
+                    )
+                  )}
+                  <motion.div initial={{ top: '-10%' }} animate={{ top: '110%' }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="absolute left-0 w-full h-px bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)] z-10 pointer-events-none" />
+                  <Link to={`/lote/${displayLote.id}`} className="absolute inset-0 z-20"></Link>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 p-5 rounded-[1.5rem] border border-white/5">
+                    <MapPin className="w-4 h-4 text-emerald-500 mb-3" />
+                    <p className="text-[9px] text-neutral-500 uppercase font-black mb-1">Localização</p>
+                    <p className="text-sm font-bold text-white leading-tight uppercase">{loteamento.name}</p>
+                  </div>
+                  <div className="bg-white/5 p-5 rounded-[1.5rem] border border-white/5">
+                    <Maximize className="w-4 h-4 text-emerald-500 mb-3" />
+                    <p className="text-[9px] text-neutral-500 uppercase font-black mb-1">VGV Sugerido</p>
+                    <p className="text-sm font-bold text-emerald-400 leading-tight">Consulte-nos</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {displayLote.status === 'Disponível' ? (
+                    <Link
+                      to={`/lote/${displayLote.id}`}
+                      className="w-full py-5 bg-emerald-500 text-black font-black uppercase text-xs tracking-[0.3em] rounded-2xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
                     >
-                       Voltar à Navegação
-                    </button>
-                 </div>
+                      <Zap className="w-5 h-5 fill-black" /> Saber Mais & Fotos
+                    </Link>
+                  ) : (
+                    <div className="w-full py-5 bg-white/5 border border-white/10 text-neutral-600 font-black uppercase text-xs tracking-[0.3em] rounded-2xl text-center">
+                      Unidade Indisponível
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setActiveLote(null)}
+                    className="w-full py-4 text-neutral-600 hover:text-white text-[9px] font-black uppercase tracking-widest transition-colors"
+                  >
+                    Voltar à Navegação
+                  </button>
+                </div>
               </div>
             </motion.div>
           ) : (
@@ -328,23 +330,23 @@ export default function PublicLoteamentoView() {
               animate={{ opacity: 1, y: 0 }}
               className="pointer-events-auto bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl text-center space-y-6 sidebar-glow"
             >
-               <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
-                  <MapPin className="w-10 h-10 text-emerald-500" />
-               </div>
-               <div>
-                  <h3 className="text-2xl font-bold text-white font-heading tracking-tight mb-2 uppercase">Explorar Unidades</h3>
-                  <p className="text-neutral-500 text-sm font-medium leading-relaxed">
-                     Selecione um lote no mapa interativo para visualizar dimensões, fotos e disponibilidade em tempo real.
-                  </p>
-               </div>
-               <div className="flex justify-center gap-6 pt-4">
-                  {['Disponível', 'Reservado', 'Vendido'].map(s => (
-                    <div key={s} className="flex flex-col items-center gap-2">
-                       <div className={`w-3 h-3 rounded-full ${getStatusDot(s)}`} />
-                       <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">{s}</span>
-                    </div>
-                  ))}
-               </div>
+              <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+                <MapPin className="w-10 h-10 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white font-heading tracking-tight mb-2 uppercase">Explorar Unidades</h3>
+                <p className="text-neutral-500 text-sm font-medium leading-relaxed">
+                  Selecione um lote no mapa interativo para visualizar dimensões, fotos e disponibilidade em tempo real.
+                </p>
+              </div>
+              <div className="flex justify-center gap-6 pt-4">
+                {['Disponível', 'Reservado', 'Vendido'].map(s => (
+                  <div key={s} className="flex flex-col items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${getStatusDot(s)}`} />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-neutral-500">{s}</span>
+                  </div>
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -352,19 +354,19 @@ export default function PublicLoteamentoView() {
 
       {/* Map & Background */}
       <div className="absolute inset-0 z-0">
-         <MapContainer crs={L.CRS.Simple} bounds={IMAGE_BOUNDS} maxZoom={4} minZoom={-2} zoomSnap={0.5} className="w-full h-full bg-[#050505]" zoomControl={false}>
-            {mapImageUrl && <ImageOverlay url={resolveUrl(mapImageUrl)} bounds={IMAGE_BOUNDS} className="opacity-80 mix-blend-screen" />}
-            <MapEvents onMapClick={() => { setActiveLote(null); setHoveredLote(null); }} />
-            {lotes.map((l) => (
-              <ReadOnlyPolygon key={l.id} lote={l} isActive={activeLote?.id === l.id} isHovered={hoveredLote?.id === l.id} onClick={() => setActiveLote(l)} onHover={() => setHoveredLote(l)} onUnhover={() => setHoveredLote(null)} />
-            ))}
-         </MapContainer>
-         <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(0,0,0,0.95)] z-[500]" />
+        <MapContainer crs={L.CRS.Simple} bounds={IMAGE_BOUNDS} maxZoom={4} minZoom={-2} zoomSnap={0.5} className="w-full h-full bg-[#050505]" zoomControl={false}>
+          {mapImageUrl && <ImageOverlay url={resolveUrl(mapImageUrl)} bounds={IMAGE_BOUNDS} className="opacity-80 mix-blend-screen" />}
+          <MapEvents onMapClick={() => { setActiveLote(null); setHoveredLote(null); }} />
+          {lotes.map((l) => (
+            <ReadOnlyPolygon key={l.id} lote={l} isActive={activeLote?.id === l.id} isHovered={hoveredLote?.id === l.id} onClick={() => setActiveLote(l)} onHover={() => setHoveredLote(l)} onUnhover={() => setHoveredLote(null)} />
+          ))}
+        </MapContainer>
+        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(0,0,0,0.95)] z-[500]" />
       </div>
 
       {/* Floating Elements */}
       <a href="https://wa.me/5500000000000" className="fixed bottom-8 right-8 z-[3000] p-5 bg-green-500 text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all group">
-         <MessageCircle className="w-8 h-8 group-hover:rotate-12 transition-transform" />
+        <MessageCircle className="w-8 h-8 group-hover:rotate-12 transition-transform" />
       </a>
 
       {/* Modal Lead - Unificado */}
@@ -373,45 +375,45 @@ export default function PublicLoteamentoView() {
           <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowLeadModal(false)} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-neutral-900 border border-white/10 rounded-[3rem] p-12 w-full max-w-xl shadow-2xl overflow-hidden">
-               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
-               <button onClick={() => setShowLeadModal(false)} className="absolute top-8 right-8 text-neutral-500 hover:text-white"><X className="w-6 h-6" /></button>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
+              <button onClick={() => setShowLeadModal(false)} className="absolute top-8 right-8 text-neutral-500 hover:text-white"><X className="w-6 h-6" /></button>
 
-               {leadSuccess ? (
-                  <div className="text-center py-10 space-y-6">
-                     <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
-                        <CheckCircle2 className="w-10 h-10 text-emerald-500" />
-                     </div>
-                     <h3 className="text-3xl font-bold text-white font-heading">Sua reserva foi <span className="text-emerald-500">Solicitada!</span></h3>
-                     <p className="text-neutral-500 font-medium">Um corretor especialista entrará em contato em instantes.</p>
+              {leadSuccess ? (
+                <div className="text-center py-10 space-y-6">
+                  <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+                    <CheckCircle2 className="w-10 h-10 text-emerald-500" />
                   </div>
-               ) : (
-                  <>
-                    <div className="mb-10 text-center">
-                       <h3 className="text-3xl font-bold text-white font-heading tracking-tight mb-2">Interesse na Unidade <span className="text-emerald-500">{activeLote.name}</span></h3>
-                       <p className="text-neutral-500 text-sm font-medium">Informe seus dados para receber o fluxo de pagamento</p>
-                    </div>
+                  <h3 className="text-3xl font-bold text-white font-heading">Sua reserva foi <span className="text-emerald-500">Solicitada!</span></h3>
+                  <p className="text-neutral-500 font-medium">Um corretor especialista entrará em contato em instantes.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-10 text-center">
+                    <h3 className="text-3xl font-bold text-white font-heading tracking-tight mb-2">Interesse na Unidade <span className="text-emerald-500">{activeLote.name}</span></h3>
+                    <p className="text-neutral-500 text-sm font-medium">Informe seus dados para receber o fluxo de pagamento</p>
+                  </div>
 
-                    <form onSubmit={handleLeadSubmit} className="space-y-6">
-                       <div>
-                          <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">Nome Completo</label>
-                          <input type="text" required value={leadForm.name} onChange={e => setLeadForm({...leadForm, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" />
-                       </div>
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                             <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">WhatsApp</label>
-                             <input type="tel" required value={leadForm.phone} onChange={e => setLeadForm({...leadForm, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" placeholder="(00) 00000-0000" />
-                          </div>
-                          <div>
-                             <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">E-mail</label>
-                             <input type="email" value={leadForm.email} onChange={e => setLeadForm({...leadForm, email: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" />
-                          </div>
-                       </div>
-                       <button type="submit" disabled={submittingLead} className="w-full py-6 bg-emerald-500 text-black font-black uppercase text-xs tracking-[0.3em] rounded-2xl hover:bg-emerald-400 transition-all flex items-center justify-center gap-3">
-                          {submittingLead ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirmar Solicitação'}
-                       </button>
-                    </form>
-                  </>
-               )}
+                  <form onSubmit={handleLeadSubmit} className="space-y-6">
+                    <div>
+                      <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">Nome Completo</label>
+                      <input type="text" required value={leadForm.name} onChange={e => setLeadForm({ ...leadForm, name: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">WhatsApp</label>
+                        <input type="tel" required value={leadForm.phone} onChange={e => setLeadForm({ ...leadForm, phone: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" placeholder="(00) 00000-0000" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-2 px-1">E-mail</label>
+                        <input type="email" value={leadForm.email} onChange={e => setLeadForm({ ...leadForm, email: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-emerald-500 font-bold transition-all" />
+                      </div>
+                    </div>
+                    <button type="submit" disabled={submittingLead} className="w-full py-6 bg-emerald-500 text-black font-black uppercase text-xs tracking-[0.3em] rounded-2xl hover:bg-emerald-400 transition-all flex items-center justify-center gap-3">
+                      {submittingLead ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirmar Solicitação'}
+                    </button>
+                  </form>
+                </>
+              )}
             </motion.div>
           </div>
         )}

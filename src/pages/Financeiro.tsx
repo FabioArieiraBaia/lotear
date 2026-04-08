@@ -45,6 +45,8 @@ interface Pagamento {
   paidAt: string;
   notes: string | null;
   loteName: string;
+  buyerName?: string;
+  corretorName?: string;
 }
 
 interface ResumoFinanceiro {
@@ -77,6 +79,7 @@ export default function Financeiro() {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [isAntecipado, setIsAntecipado] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedReport, setSelectedReport] = useState<Pagamento | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -220,10 +223,10 @@ export default function Financeiro() {
       {/* Cards de Resumo Estilo SaaS Premium */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
-          { label: 'Total Recebido', value: resumo?.totalRecebido, icon: Wallet, color: 'emerald', desc: 'Fluxo de caixa real' },
-          { label: 'VGV Projetado', value: resumo?.vgv, icon: TrendingUp, color: 'blue', desc: 'Valor bruto de vendas' },
-          { label: 'A Receber', value: resumo?.aReceber, icon: Clock, color: 'amber', desc: 'Projeção futura' },
-          { label: 'Inadimplência', value: resumo?.inadimplencia, icon: AlertTriangle, color: 'red', desc: 'Parcelas em atraso' }
+          { label: 'Receita Líquida', value: (resumo?.totalRecebido || 0) - (resumo?.comissoesPagas || 0), icon: Wallet, color: 'emerald', desc: 'Caixa Real (Após Comissões)' },
+          { label: 'Entradas Brutas', value: resumo?.totalRecebido, icon: TrendingUp, color: 'blue', desc: 'Total pago pelos clientes' },
+          { label: 'Comissões Pagas', value: resumo?.comissoesPagas, icon: Users, color: 'purple', desc: 'Saída/Repasse a corretores' },
+          { label: 'A Receber', value: resumo?.aReceber, icon: Clock, color: 'amber', desc: 'Títulos pendentes futuros' }
         ].map((card, idx) => (
           <motion.div 
             key={card.label}
@@ -547,14 +550,20 @@ export default function Financeiro() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: idx * 0.05 }}
-                          className="group hover:bg-white/5 transition-all duration-300"
+                          onClick={() => setSelectedReport(pagamento)}
+                          className="group hover:bg-white/5 transition-all duration-300 cursor-pointer relative"
                         >
-                          <td className="px-6 py-5 rounded-l-[1.5rem] font-bold text-white">
+                          <td className="px-6 py-5 rounded-l-[1.5rem] font-bold text-white relative">
+                             {/* Hover Tooltip */}
+                             <div className="absolute left-10 -top-10 bg-neutral-800 text-white text-[10px] uppercase font-bold tracking-widest px-4 py-2.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap z-50 shadow-2xl border border-white/10 pointer-events-none transform group-hover:-translate-y-1">
+                                Ver Dossiê Completo • {pagamento.type === 'comissao' ? (pagamento.corretorName || 'Corretor') : (pagamento.buyerName || 'Comprador')}
+                             </div>
+                             
                              <div className="text-sm">{formatDate(pagamento.paidAt)}</div>
                              <div className="text-[10px] text-neutral-500 font-medium">#{pagamento.id}</div>
                           </td>
                           <td className="px-6 py-5">
-                             <div className="text-sm font-bold text-white uppercase">{pagamento.loteName}</div>
+                             <div className="text-sm font-bold text-white uppercase group-hover:text-emerald-400 transition-colors">{pagamento.loteName}</div>
                           </td>
                           <td className="px-6 py-5">
                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
@@ -566,7 +575,9 @@ export default function Financeiro() {
                                pagamento.type === 'parcela' ? 'Parcela Mensal' : 'Repasse Comissão'}
                             </span>
                           </td>
-                          <td className="px-6 py-5 text-emerald-500 font-mono font-bold text-lg">{formatCurrency(pagamento.amount)}</td>
+                          <td className={`px-6 py-5 font-mono font-bold text-lg ${pagamento.type === 'comissao' ? 'text-red-500' : 'text-emerald-500'}`}>
+                             {pagamento.type === 'comissao' ? '- ' : ''}{formatCurrency(pagamento.amount)}
+                          </td>
                           <td className="px-6 py-5">
                              <div className="flex items-center gap-2 text-white/70 text-sm font-bold uppercase tracking-tighter">
                                 <CreditCard className="w-3.5 h-3.5" /> {pagamento.paymentMethod || 'PIX'}
@@ -715,6 +726,90 @@ export default function Financeiro() {
                    <button onClick={handleRegistrarPagamento} disabled={processingPayment} className="flex-[2] h-16 rounded-[1.5rem] bg-emerald-500 text-black font-black uppercase tracking-widest hover:bg-emerald-400 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 group disabled:opacity-50">
                       {processingPayment ? <Loader2 className="w-6 h-6 animate-spin" /> : <> <Check className="w-6 h-6 group-hover:scale-125 transition-transform" /> Confirmar Recebimento </>}
                    </button>
+                </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Relatório Completo do Pagamento */}
+      <AnimatePresence>
+        {selectedReport && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectedReport(null)} />
+             <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="bg-neutral-900 border border-white/10 rounded-[3rem] p-10 w-full max-w-xl relative overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                onClick={(e) => e.stopPropagation()}
+             >
+                <div className={`absolute top-0 right-0 w-64 h-64 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2 ${selectedReport.type === 'comissao' ? 'bg-purple-500/10' : 'bg-emerald-500/10'}`} />
+                
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                     <h3 className="text-2xl font-bold text-white font-heading tracking-tight flex items-center gap-3">
+                       <FileText className="w-6 h-6 text-emerald-500" />
+                       Dossiê de Transação
+                     </h3>
+                     <p className="text-neutral-500 text-sm font-medium mt-1 uppercase tracking-widest text-[10px]">Documento Nº {selectedReport.id.toString().padStart(6, '0')}</p>
+                  </div>
+                  <button onClick={() => setSelectedReport(null)} className="w-12 h-12 rounded-2xl bg-white/5 text-neutral-500 hover:bg-red-500/20 hover:text-red-500 transition-all flex items-center justify-center">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Bloco de Valor */}
+                  <div className={`p-8 rounded-[2rem] border relative overflow-hidden flex flex-col items-center justify-center ${selectedReport.type === 'comissao' ? 'bg-purple-500/5 border-purple-500/20' : 'bg-emerald-500/5 border-emerald-500/20'}`}>
+                     <div className="absolute top-4 right-6 text-[10px] uppercase font-black tracking-widest px-3 py-1 bg-white/10 rounded-full text-white/80">
+                         {selectedReport.type === 'sinal' ? 'Entrada' : selectedReport.type === 'parcela' ? 'Parcelamento' : 'Comissão'}
+                     </div>
+                     <span className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${selectedReport.type === 'comissao' ? 'text-purple-400' : 'text-emerald-500'}`}>Valor Consolidado</span>
+                     <div className={`text-4xl font-heading font-bold ${selectedReport.type === 'comissao' ? 'text-red-400' : 'text-emerald-400'}`}>
+                        {selectedReport.type === 'comissao' ? '- ' : ''}{formatCurrency(selectedReport.amount)}
+                     </div>
+                  </div>
+
+                  {/* Informações Contextuais */}
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="bg-white/5 border border-white/5 rounded-3xl p-5">
+                         <span className="block text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Data / Hora</span>
+                         <span className="text-white font-bold text-sm">{formatDate(selectedReport.paidAt)}</span>
+                     </div>
+                     <div className="bg-white/5 border border-white/5 rounded-3xl p-5">
+                         <span className="block text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><CreditCard className="w-3 h-3" /> Conciliação</span>
+                         <span className="text-white font-bold text-sm uppercase">{selectedReport.paymentMethod || 'PIX'}</span>
+                     </div>
+                  </div>
+
+                  {/* Atores */}
+                  <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-4">
+                     <div>
+                        <span className="block text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-1">Unidade / Ativo</span>
+                        <div className="text-white font-bold text-lg uppercase tracking-tight">{selectedReport.loteName}</div>
+                     </div>
+                     <div className="h-px bg-white/5 w-full" />
+                     {selectedReport.type === 'comissao' ? (
+                       <div>
+                          <span className="block text-[10px] text-purple-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Users className="w-3 h-3" /> Recebedor (Corretor)</span>
+                          <div className="text-white font-bold">{selectedReport.corretorName || 'Não Informado'}</div>
+                       </div>
+                     ) : (
+                       <div>
+                          <span className="block text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Users className="w-3 h-3" /> Pagador (Comprador)</span>
+                          <div className="text-white font-bold">{selectedReport.buyerName || 'Não Informado'}</div>
+                       </div>
+                     )}
+                  </div>
+
+                  {/* Histórico / Notas */}
+                  {selectedReport.notes && (
+                    <div className="bg-amber-500/5 border border-amber-500/10 rounded-3xl p-6">
+                       <span className="block text-[10px] text-amber-500 font-bold uppercase tracking-widest mb-2 flex items-center gap-2"><FileText className="w-3 h-3" /> Histórico / Observações</span>
+                       <p className="text-neutral-300 text-sm font-medium leading-relaxed italic border-l-2 border-amber-500/30 pl-4">{selectedReport.notes}</p>
+                    </div>
+                  )}
                 </div>
              </motion.div>
           </div>

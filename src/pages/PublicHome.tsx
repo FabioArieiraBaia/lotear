@@ -157,7 +157,7 @@ export default function PublicHome() {
                         animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                         exit={{ opacity: 0, scale: 0.9, filter: 'blur(20px)' }}
                         transition={{ duration: 1.5, ease: [0.19, 1, 0.22, 1] }}
-                        src={allLotes[currentSlide].photoUrl}
+                        src={resolveUrl(allLotes[currentSlide].photoUrl)}
                         className="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-1000"
                       />
                     ) : (

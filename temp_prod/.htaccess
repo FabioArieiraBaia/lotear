@@ -1,0 +1,25 @@
+<IfModule mod_mime.c>
+  # Correção para o servidor reconhecer módulos javascript (mjs) exigidos pelo PDF.js
+  # Usando application/javascript para suporte total a módulos
+  AddType application/javascript .js .mjs
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /lotear/
+
+  # Ignorar reescrita para as pastas do backend e o worker do PDF
+  RewriteCond %{REQUEST_URI} ^/lotear/(api|data|uploads|pdf\.worker\.min\.js) [NC]
+  RewriteRule ^ - [L]
+
+  # Se o arquivo ou diretório físico existir, servir diretamente
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteCond %{REQUEST_FILENAME} -d [OR]
+  RewriteCond %{REQUEST_FILENAME} -l
+  RewriteRule ^ - [L]
+
+  # Redirecionar todas as outras rotas para o index.html do React
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /lotear/index.html [L]
+</IfModule>
