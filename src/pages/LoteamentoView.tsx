@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjs from 'pdfjs-dist';
 import { resolveUrl } from '../utils/url';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { useToast } from '../components/Toast';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -137,6 +138,7 @@ function EditablePolygon({ lote, isActive, onClick, onEdit }: { key?: any, lote:
 
 export default function LoteamentoView() {
   const { id } = useParams<{ id: string }>();
+  const { toast } = useToast();
   const [loteamento, setLoteamento] = useState<any>(null);
   const [lotes, setLotes] = useState<any[]>([]);
   const [corretores, setCorretores] = useState<any[]>([]);
@@ -381,9 +383,11 @@ export default function LoteamentoView() {
 
       setLotes(prev => prev.map(l => l.id === activeLote.id ? activeLote : l));
       setSaving(false);
+      toast('Lote salvo com sucesso!', 'success');
     } catch (err) {
       console.error("Error saving lote:", err);
       setSaving(false);
+      toast('Erro ao salvar lote.', 'error');
     }
   };
 
@@ -531,8 +535,11 @@ export default function LoteamentoView() {
       <motion.div
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className={`w-full md:w-[420px] bg-white/[0.03] backdrop-blur-3xl border-r border-white/10 shadow-2xl z-20 flex flex-col transition-transform duration-300 ${activeLote ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        className={`fixed md:relative bottom-0 md:top-0 left-0 right-0 md:right-auto w-full md:w-[420px] h-[60vh] md:h-full bg-neutral-950 md:bg-white/[0.03] backdrop-blur-3xl border-t md:border-t-0 md:border-r border-white/10 shadow-2xl z-40 md:z-20 flex flex-col transition-transform duration-300 rounded-t-[2rem] md:rounded-t-0 ${activeLote ? 'translate-y-0 md:translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 -translate-x-full md:translate-x-0'}`}
       >
+        {/* Mobile Drag Indicator */}
+        <div className="w-12 h-1.5 bg-white/15 rounded-full mx-auto my-3 md:hidden block shrink-0" />
+        
         <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-transparent">
           <Link to="/admin" className="text-emerald-400 hover:text-emerald-300 flex items-center gap-2 font-bold transition-all hover:-translate-x-1">
             <ArrowLeft className="w-5 h-5" /> Painel

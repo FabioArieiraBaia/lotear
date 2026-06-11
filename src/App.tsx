@@ -16,6 +16,7 @@ import Apresentacao from './pages/Apresentacao';
 import Configuracoes from './pages/Configuracoes';
 import LoteDetail from './pages/LoteDetail';
 import { Map, LogOut, ShieldAlert } from 'lucide-react';
+import { ToastProvider } from './components/Toast';
 
 function Header() {
   const location = useLocation();
@@ -29,8 +30,8 @@ function Header() {
     navigate('/');
   };
 
-  // Hide header completely on the public loteamento view since it has its own HUD
-  if (isPublicView) return null;
+  // Hide header completely on the public loteamento view since it has its own HUD, and on admin routes
+  if (isPublicView || isAdminRoute) return null;
 
   return (
     <header className="bg-neutral-950/80 backdrop-blur-xl border-b border-white/10 text-white p-4 sticky top-0 z-[100] flex justify-between items-center">
@@ -71,37 +72,39 @@ export default function App() {
   const basename = import.meta.env.BASE_URL;
 
   return (
-    <BrowserRouter basename={basename}>
-      <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-200 selection:bg-emerald-500/30">
-        <Header />
-        <main className="flex-1 relative flex flex-col overflow-hidden">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<PublicHome />} />
-            <Route path="/loteamento/:id" element={<PublicLoteamentoView />} />
-            <Route path="/lote/:id" element={<LoteDetail />} />
-            
-            {/* Admin Login */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            
-            {/* Admin Routes wrapped in Layout */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="financeiro" element={<Financeiro />} />
-              <Route path="compradores" element={<Compradores />} />
-              <Route path="contatos" element={<Contatos />} />
-              <Route path="corretores" element={<Corretores />} />
-              <Route path="usuarios" element={<Usuarios />} />
-              <Route path="apresentacao" element={<Apresentacao />} />
-              <Route path="configuracoes" element={<Configuracoes />} />
-              <Route path="new" element={<NewLoteamento />} />
-              <Route path="loteamento/:id" element={<LoteamentoView />} />
-            </Route>
-            
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter basename={basename}>
+        <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-200 selection:bg-emerald-500/30">
+          <Header />
+          <main className="flex-1 relative flex flex-col overflow-hidden">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<PublicHome />} />
+              <Route path="/loteamento/:id" element={<PublicLoteamentoView />} />
+              <Route path="/lote/:id" element={<LoteDetail />} />
+              
+              {/* Admin Login */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              
+              {/* Admin Routes wrapped in Layout */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="financeiro" element={<Financeiro />} />
+                <Route path="compradores" element={<Compradores />} />
+                <Route path="contatos" element={<Contatos />} />
+                <Route path="corretores" element={<Corretores />} />
+                <Route path="usuarios" element={<Usuarios />} />
+                <Route path="apresentacao" element={<Apresentacao />} />
+                <Route path="configuracoes" element={<Configuracoes />} />
+                <Route path="new" element={<NewLoteamento />} />
+                <Route path="loteamento/:id" element={<LoteamentoView />} />
+              </Route>
+              
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }

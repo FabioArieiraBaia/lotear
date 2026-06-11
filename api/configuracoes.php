@@ -13,8 +13,9 @@ function handleGetConfig($db) {
         }
         echo json_encode($config);
     } catch (PDOException $e) {
+        error_log($e->getMessage());
         http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
+        echo json_encode(['error' => 'Erro interno do servidor']);
     }
 }
 
@@ -42,7 +43,8 @@ function handleUpdateConfig($db) {
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
         $db->rollBack();
+        error_log($e->getMessage());
         http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
+        echo json_encode(['error' => 'Erro interno do servidor']);
     }
 }

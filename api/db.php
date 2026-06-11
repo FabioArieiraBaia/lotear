@@ -90,6 +90,7 @@ function getDatabase() {
             ['lotes', 'totalPaid', 'REAL DEFAULT 0'],
             ['lotes', 'commissionRate', 'REAL'],
             ['comissoes', 'paidAmount', 'REAL DEFAULT 0'],
+            ['admin_users', 'token_expires_at', 'DATETIME'],
         ];
         
         foreach ($columns as [$table, $column, $definition]) {
@@ -177,6 +178,12 @@ function getDatabase() {
                 chave TEXT PRIMARY KEY,
                 valor TEXT,
                 updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS login_attempts (
+                ip TEXT PRIMARY KEY,
+                attempts INTEGER DEFAULT 0,
+                lastAttempt INTEGER
             );
         ");
         

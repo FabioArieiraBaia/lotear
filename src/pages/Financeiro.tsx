@@ -347,7 +347,52 @@ export default function Financeiro() {
                 </div>
               </div>
               
-              <div className="overflow-x-auto custom-scrollbar">
+               {/* Mobile View: Cards (MOB-01) */}
+              <div className="md:hidden space-y-4">
+                {filteredVendas.length === 0 ? (
+                  <div className="py-20 text-center text-neutral-600 italic">
+                    Ops! Nenhum registro encontrado para sua busca.
+                  </div>
+                ) : (
+                  filteredVendas.map((venda) => (
+                    <div key={venda.id} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-white text-base">{venda.loteName}</span>
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                          venda.statusPagamento === 'quitado' 
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        }`}>
+                          {venda.statusPagamento === 'quitado' ? 'Liquidado' : 'Aberto'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-neutral-400">
+                        <span className="text-neutral-500 uppercase tracking-wider font-bold">Loteamento:</span> {venda.loteamentoName}
+                      </div>
+                      <div className="text-xs text-neutral-400">
+                        <span className="text-neutral-500 uppercase tracking-wider font-bold">Comprador:</span> {venda.compradorNome}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/5 text-xs">
+                        <div>
+                          <span className="text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Total</span>
+                          <span className="font-mono text-white font-bold">{formatCurrency(venda.valorTotal)}</span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Entrada</span>
+                          <span className="font-mono text-emerald-400 font-bold">{formatCurrency(venda.entrada)}</span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Plano</span>
+                          <span className="text-white font-bold">{venda.totalParcelas}x</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-separate border-spacing-y-2">
                   <thead>
                     <tr className="text-neutral-500 text-[10px] uppercase tracking-widest font-bold">
@@ -389,7 +434,10 @@ export default function Financeiro() {
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 flex items-center justify-center text-[10px] font-bold text-emerald-500 border border-emerald-500/10">
                                    {venda.compradorNome?.charAt(0) || 'C'}
                                 </div>
-                                <span className="text-white font-bold text-sm tracking-tight">{venda.compradorNome || '-'}</span>
+                                <div>
+                                   <p className="text-white font-bold text-sm leading-none">{venda.compradorNome}</p>
+                                   <p className="text-[9px] text-neutral-500 font-mono tracking-tighter mt-1">CPF: {venda.compradorCpf}</p>
+                                </div>
                              </div>
                           </td>
                           <td className="px-6 py-5 text-white font-mono font-bold">{formatCurrency(venda.valorTotal)}</td>
@@ -432,10 +480,67 @@ export default function Financeiro() {
                     <AlertTriangle className="w-3.5 h-3.5" />
                     {parcelasAtrasadas.length} Atrasadas
                   </div>
-                </div>
               </div>
               
-              <div className="w-full">
+              {/* Mobile View: Cards (MOB-01) */}
+              <div className="md:hidden space-y-4">
+                {parcelas.length === 0 ? (
+                  <div className="py-20 text-center text-neutral-600 italic">Nada por aqui ainda.</div>
+                ) : (
+                  [...parcelasAtrasadas, ...parcelas.filter(p => !parcelasAtrasadas.includes(p) && p.status !== 'pago')].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map((parcela) => {
+                    const isAtrasado = new Date(parcela.dueDate) < new Date();
+                    return (
+                      <div key={parcela.id} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] space-y-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-bold text-white text-base uppercase">{parcela.loteName}</span>
+                            <span className="text-[10px] text-neutral-500 font-mono block">Parc. {parcela.installmentNumber}/{parcela.totalInstallments}</span>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                            isAtrasado ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {isAtrasado ? 'Atrasada' : 'Em Aberto'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-neutral-400">
+                          <span className="text-neutral-500 uppercase tracking-wider font-bold">Loteamento:</span> {parcela.loteamentoName}
+                        </div>
+                        <div className="text-xs text-neutral-400">
+                          <span className="text-neutral-500 uppercase tracking-wider font-bold">Responsável:</span> {parcela.buyerName}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/5 text-xs items-center">
+                          <div>
+                            <span className="text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Valor</span>
+                            <span className="font-mono text-white font-bold">{formatCurrency(parcela.amount)}</span>
+                          </div>
+                          <div>
+                            <span className="text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Vencimento</span>
+                            <span className={`font-bold ${isAtrasado ? 'text-red-400' : 'text-neutral-400'}`}>{formatDate(parcela.dueDate)}</span>
+                          </div>
+                        </div>
+                        <div className="pt-2">
+                          <button
+                            onClick={() => {
+                              setSelectedParcela(parcela);
+                              setPaymentOverride(null);
+                              setJuros('');
+                              setMulta('');
+                              setDesconto('');
+                              setShowPaymentModal(true);
+                            }}
+                            className="w-full py-3 bg-emerald-500 text-black rounded-xl hover:scale-102 active:scale-98 transition-all text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 min-h-[44px]"
+                          >
+                            Dar Baixa
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Desktop View */}
+              <div className="hidden md:block w-full">
                 <table className="w-full text-left border-separate border-spacing-y-2">
                   <thead>
                     <tr className="text-neutral-500 text-[10px] uppercase tracking-widest font-bold">
@@ -482,7 +587,7 @@ export default function Financeiro() {
                           <td className="px-6 py-5 font-mono text-white font-bold">{formatCurrency(parcela.amount)}</td>
                           <td className="px-6 py-5">
                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                              isAtrasado ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                              isAtrasado ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                             }`}>
                               {isAtrasado ? 'Atrasada' : 'Em Aberto'}
                             </span>
@@ -507,7 +612,7 @@ export default function Financeiro() {
                     })}
                   </tbody>
                 </table>
-              </div>
+              </div>             </div>
             </motion.div>
           )}
 
@@ -526,7 +631,53 @@ export default function Financeiro() {
                 </div>
               </div>
               
-              <div className="w-full">
+              {/* Mobile View: Cards (MOB-01) */}
+              <div className="md:hidden space-y-4">
+                {(!resumo?.ultimosPagamentos || resumo.ultimosPagamentos.length === 0) ? (
+                  <div className="py-20 text-center text-neutral-600 italic">Nada por aqui ainda.</div>
+                ) : (
+                  resumo.ultimosPagamentos.map((pagamento) => (
+                    <div 
+                      key={pagamento.id} 
+                      onClick={() => setSelectedReport(pagamento)}
+                      className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] space-y-3 cursor-pointer hover:bg-white/5 transition-all"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-bold text-white text-base uppercase">{pagamento.loteName}</span>
+                          <span className="text-[10px] text-neutral-500 block">{formatDate(pagamento.paidAt)}</span>
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                          pagamento.type === 'sinal' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                          pagamento.type === 'parcela' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
+                          'bg-purple-500/10 text-purple-500 border border-purple-500/20'
+                        }`}>
+                          {pagamento.type === 'sinal' ? 'Sinal' : 
+                           pagamento.type === 'parcela' ? 'Parcela' : 'Comissão'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                        <div>
+                          <span className="text-neutral-500 block text-[9px] uppercase tracking-wider font-bold">Meio</span>
+                          <span className="text-white text-xs font-bold">{pagamento.paymentMethod || 'PIX'}</span>
+                        </div>
+                        <div>
+                          <span className="text-neutral-500 block text-[9px] uppercase tracking-wider font-bold text-right">Valor</span>
+                          <span className={`font-mono font-bold text-base ${pagamento.type === 'comissao' ? 'text-red-500' : 'text-emerald-500'}`}>
+                            {pagamento.type === 'comissao' ? '- ' : ''}{formatCurrency(pagamento.amount)}
+                          </span>
+                        </div>
+                      </div>
+                      {pagamento.notes && (
+                        <div className="text-neutral-500 text-xs italic truncate pt-1">{pagamento.notes}</div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View */}
+              <div className="hidden md:block w-full">
                 <table className="w-full text-left border-separate border-spacing-y-2">
                   <thead>
                     <tr className="text-neutral-500 text-[10px] uppercase tracking-widest font-bold">
@@ -554,11 +705,9 @@ export default function Financeiro() {
                           className="group hover:bg-white/5 transition-all duration-300 cursor-pointer relative"
                         >
                           <td className="px-6 py-5 rounded-l-[1.5rem] font-bold text-white relative">
-                             {/* Hover Tooltip */}
                              <div className="absolute left-10 -top-10 bg-neutral-800 text-white text-[10px] uppercase font-bold tracking-widest px-4 py-2.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap z-50 shadow-2xl border border-white/10 pointer-events-none transform group-hover:-translate-y-1">
                                 Ver Dossiê Completo • {pagamento.type === 'comissao' ? (pagamento.corretorName || 'Corretor') : (pagamento.buyerName || 'Comprador')}
                              </div>
-                             
                              <div className="text-sm">{formatDate(pagamento.paidAt)}</div>
                              <div className="text-[10px] text-neutral-500 font-medium">#{pagamento.id}</div>
                           </td>
@@ -598,7 +747,7 @@ export default function Financeiro() {
       {/* Modal de Pagamento - SaaS Design */}
       <AnimatePresence>
         {showPaymentModal && selectedParcela && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[50] flex items-center justify-center p-4">
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowPaymentModal(false)} />
              <motion.div
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -735,7 +884,7 @@ export default function Financeiro() {
       {/* Modal de Relatório Completo do Pagamento */}
       <AnimatePresence>
         {selectedReport && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectedReport(null)} />
              <motion.div
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}

@@ -7,5 +7,7 @@ coverage/
 .env*
 !.env.example
 database.sqlite
+data/database.sqlite
+api/*.sqlite
 test.db
 uploads/

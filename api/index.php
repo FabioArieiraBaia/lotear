@@ -5,7 +5,18 @@
  */
 
 // CORS headers
-header('Access-Control-Allow-Origin: *');
+$allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost', 'http://127.0.0.1'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Credentials: true');
+} else {
+    $serverName = $_SERVER['SERVER_NAME'] ?? '';
+    if ($serverName && strpos($origin, $serverName) !== false) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Credentials: true');
+    }
+}
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json; charset=utf-8');
@@ -32,6 +43,7 @@ require_once __DIR__ . '/corretores.php';
 require_once __DIR__ . '/financeiro.php';
 require_once __DIR__ . '/usuarios.php';
 require_once __DIR__ . '/configuracoes.php';
+require_once __DIR__ . '/gemini.php';
 
 // Parse the request path
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -52,6 +64,11 @@ try {
     // POST /api/login
     if ($path === '/api/login' && $method === 'POST') {
         handleLogin();
+    }
+    
+    // POST /api/gemini/extract
+    elseif ($path === '/api/gemini/extract' && $method === 'POST') {
+        handleGeminiExtract();
     }
     
     // GET /api/loteamentos
@@ -262,7 +279,9 @@ try {
     }
     
 } catch (PDOException $e) {
-    jsonResponse(['error' => $e->getMessage()], 500);
+    error_log($e->getMessage());
+    jsonResponse(['error' => 'Erro interno do servidor'], 500);
 } catch (Exception $e) {
-    jsonResponse(['error' => $e->getMessage()], 500);
+    error_log($e->getMessage());
+    jsonResponse(['error' => 'Erro interno do servidor'], 500);
 }

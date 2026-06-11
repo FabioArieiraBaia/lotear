@@ -376,7 +376,7 @@ export default function Compradores() {
 
                                   {/* Tabela de Parcelas Compacta */}
                                   <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] overflow-hidden">
-                                     <div className="w-full">
+                                     <div className="w-full overflow-x-auto custom-scrollbar">
                                         <table className="w-full text-left border-collapse">
                                             <thead className="sticky top-0 bg-neutral-900 border-b border-white/10 z-10 transition-colors">
                                                <tr className="text-[9px] text-neutral-500 uppercase font-black tracking-widest">
@@ -443,7 +443,7 @@ export default function Compradores() {
       {/* Modal de Pagamento - Consistente com Financeiro */}
       <AnimatePresence>
         {showPaymentModal && selectedParcela && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[50] flex items-center justify-center p-4">
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowPaymentModal(false)} />
              <motion.div
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}

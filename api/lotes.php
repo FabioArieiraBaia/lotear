@@ -159,10 +159,33 @@ function handleUploadLoteMidia($loteId) {
     
     if (!empty($_FILES['image'])) {
         $file = $_FILES['image'];
+        
+        // Validar extensão (SEC-06)
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (!in_array($ext, $allowedExts)) {
+            jsonResponse(['error' => 'Tipo de arquivo não permitido. Use: ' . implode(', ', $allowedExts)], 400);
+            return;
+        }
+        
+        // Validar tamanho (max 10MB)
+        if ($file['size'] > 10 * 1024 * 1024) {
+            jsonResponse(['error' => 'Arquivo muito grande. Máximo: 10MB'], 400);
+            return;
+        }
+        
+        // Validar MIME type real (SEC-06)
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($mime, $allowedMimes)) {
+            jsonResponse(['error' => 'Conteúdo do arquivo inválido para o tipo especificado.'], 400);
+            return;
+        }
+        
         $filename = 'lote_' . $loteId . '_' . time() . '_' . uniqid() . '.' . $ext;
         $targetDir = __DIR__ . '/../uploads/';
-        if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+        if (!is_dir($targetDir)) mkdir($targetDir, 0755, true);
         
         if (move_uploaded_file($file['tmp_name'], $targetDir . $filename)) {
             $url = 'uploads/' . $filename;

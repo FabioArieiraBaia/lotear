@@ -35,6 +35,15 @@ function handleCreateLoteamento() {
             return;
         }
         
+        // Validar MIME type real (SEC-06)
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($_FILES['image']['tmp_name']);
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+        if (!in_array($mime, $allowedMimes)) {
+            jsonResponse(['error' => 'Conteúdo do arquivo inválido para o tipo especificado.'], 400);
+            return;
+        }
+        
         // Validar tamanho (max 20MB)
         if ($_FILES['image']['size'] > 20 * 1024 * 1024) {
             jsonResponse(['error' => 'Arquivo muito grande. Máximo: 20MB'], 400);

@@ -308,7 +308,7 @@ export default function Dashboard() {
 
                   <button
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteModal({ open: true, loteamento: l }); }}
-                    className="absolute top-6 right-6 p-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl opacity-0 group-hover/card:opacity-100 transition-all shadow-xl z-30 border border-red-500/20 backdrop-blur-md"
+                    className="absolute top-6 right-6 p-3.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl opacity-0 group-hover/card:opacity-100 transition-all shadow-xl z-30 border border-red-500/20 backdrop-blur-md"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -322,7 +322,7 @@ export default function Dashboard() {
       {/* Delete Confirmation Modal (SaaS 2027 Style) */}
       <AnimatePresence>
         {deleteModal.open && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-center justify-center z-[1000] p-6" onClick={() => !deleting && setDeleteModal({ open: false, loteamento: null })}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-center justify-center z-[50] p-6" onClick={() => !deleting && setDeleteModal({ open: false, loteamento: null })}>
             <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 40 }} className="bg-white/[0.03] border border-white/10 rounded-[3rem] p-12 max-w-xl w-full shadow-[0_0_100px_rgba(239,68,68,0.1)] relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
               <div className="absolute top-0 left-0 w-full h-1 bg-red-500/40 blur-sm" />
               <div className="flex items-center gap-6 mb-10">
