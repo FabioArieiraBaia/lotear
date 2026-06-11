@@ -4,7 +4,8 @@ import { resolveUrl } from '../utils/url';
 import { 
   ArrowLeft, MapPin, Maximize, Target, Building, 
   ImageIcon, MonitorPlay, MessageCircle, Zap, Shield, 
-  CheckCircle2, Loader2, Globe, Clock, ChevronRight, X, Eye
+  CheckCircle2, Loader2, Globe, Clock, ChevronRight, X, Eye,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
