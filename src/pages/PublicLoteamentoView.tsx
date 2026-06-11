@@ -81,6 +81,14 @@ export default function PublicLoteamentoView() {
   const [convertingPdf, setConvertingPdf] = useState(false);
   const [midias, setMidias] = useState<any[]>([]);
   const [loadingMidia, setLoadingMidia] = useState(false);
+  const [config, setConfig] = useState<any>({});
+
+  useEffect(() => {
+    fetch(import.meta.env.BASE_URL + 'api/configuracoes')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error(err));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -364,8 +372,8 @@ export default function PublicLoteamentoView() {
         <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(0,0,0,0.95)] z-[500]" />
       </div>
 
-      {/* Floating Elements */}
-      <a href="https://wa.me/5500000000000" className="fixed bottom-8 right-8 z-[3000] p-5 bg-green-500 text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all group">
+      {/* Floating WhatsApp CTA */}
+      <a href={`https://wa.me/${config.whatsapp || '5500000000000'}`} target="_blank" rel="noopener noreferrer" className="fixed bottom-8 right-8 z-[3000] p-5 bg-green-500 text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all group">
         <MessageCircle className="w-8 h-8 group-hover:rotate-12 transition-transform" />
       </a>
 

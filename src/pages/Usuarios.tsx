@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Loader2, Plus, Edit2, Trash2, ShieldAlert, Check, User as UserIcon, 
   Mail, ShieldCheck, Key, Lock, ChevronRight, X, Layout, Map, DollarSign, 
-  Users as UsersIcon, Contact, Briefcase, Eye
+  Users as UsersIcon, Contact, Briefcase, Eye, Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -24,6 +24,7 @@ const AVAILABLE_PERMISSIONS = [
   { id: 'contatos', label: 'Contatos', icon: Contact },
   { id: 'corretores', label: 'Corretores', icon: Briefcase },
   { id: 'usuarios', label: 'Administração', icon: ShieldCheck },
+  { id: 'configuracoes', label: 'Configurações', icon: Settings },
 ];
 
 export default function Usuarios() {

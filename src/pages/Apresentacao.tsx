@@ -7,7 +7,7 @@ import {
   MonitorPlay, MapPin, ChevronRight, Building,
   ArrowLeft, ArrowRight, Zap, Loader2, Info, Search, Filter,
   Globe2, Layers, Compass, LayoutGrid, TrendingUp, Tag,
-  DollarSign, Ruler, Eye, ExternalLink, Sparkles, MousePointer2
+  DollarSign, Ruler, Eye, ExternalLink, Sparkles, MousePointer2, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjs from 'pdfjs-dist';
@@ -88,8 +88,14 @@ export default function Apresentacao() {
   const [searchQuery, setSearchQuery] = useState('');
   const [midias, setMidias] = useState<any[]>([]);
   const [loadingMidia, setLoadingMidia] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [config, setConfig] = useState<any>({});
 
   useEffect(() => {
+    fetch(import.meta.env.BASE_URL + 'api/configuracoes')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error(err));
     fetchLoteamentos();
   }, []);
 
@@ -375,7 +381,7 @@ export default function Apresentacao() {
         {/* FOOTER / CONTACT INFO */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="mt-40 text-center pb-20 relative z-10">
           <div className="w-24 h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent mx-auto mb-10 opacity-30" />
-          <p className="text-neutral-600 text-[10px] font-black uppercase tracking-[0.5em] mb-4">LotearPro Advanced Systems</p>
+          <p className="text-neutral-600 text-[10px] font-black uppercase tracking-[0.5em] mb-4">{config.nome_empresa || 'LotearPro'} Advanced Systems</p>
           <p className="text-neutral-500 text-sm font-medium">Plataforma de Alta Performance para Gestão e Lançamentos v2027.04</p>
         </motion.div>
       </div>
@@ -488,8 +494,12 @@ export default function Apresentacao() {
                 <div className="mb-8 space-y-4">
                   <p className="text-neutral-500 text-[10px] uppercase font-black tracking-widest flex items-center gap-2"><Sparkles className="w-3.5 h-3.5" /> Galeria Multimídia</p>
                   <div className="flex gap-3 overflow-x-auto pb-4 custom-scrollbar">
-                    {midias.map(m => (
-                      <div key={m.id} className="flex-shrink-0 w-32 aspect-square rounded-2xl bg-neutral-800 border border-white/5 overflow-hidden group/m relative cursor-pointer">
+                    {midias.map((m, idx) => (
+                      <div 
+                        key={m.id} 
+                        onClick={() => setLightboxIndex(idx)}
+                        className="flex-shrink-0 w-32 aspect-square rounded-2xl bg-neutral-800 border border-white/5 overflow-hidden group/m relative cursor-pointer"
+                      >
                         {m.type === 'image' ? (
                           <>
                             <img src={resolveUrl(m.url)} className="w-full h-full object-cover group-hover/m:scale-110 transition-transform duration-500" alt="Lote" />
@@ -498,7 +508,7 @@ export default function Apresentacao() {
                             </div>
                           </>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center bg-red-500/10" onClick={() => window.open(m.url, '_blank')}>
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-red-500/10">
                             <MonitorPlay className="w-6 h-6 text-red-500 mb-1" />
                             <span className="text-[7px] font-black text-red-500 uppercase">Assistir</span>
                           </div>
@@ -559,6 +569,74 @@ export default function Apresentacao() {
           </div>
         ))}
       </div>
+
+      {/* LIGHTBOX MODAL */}
+      <AnimatePresence>
+        {lightboxIndex !== null && midias[lightboxIndex] && (
+          <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-black/95 backdrop-blur-xl" 
+              onClick={() => setLightboxIndex(null)} 
+            />
+            
+            <button 
+              onClick={() => setLightboxIndex(null)} 
+              className="absolute top-6 right-6 z-10 w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center border border-white/10 cursor-pointer"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {midias.length > 1 && (
+              <>
+                <button 
+                  onClick={() => setLightboxIndex(prev => prev !== null ? (prev - 1 + midias.length) % midias.length : null)} 
+                  className="absolute left-6 z-10 w-14 h-14 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center border border-white/10 cursor-pointer"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={() => setLightboxIndex(prev => prev !== null ? (prev + 1) % midias.length : null)} 
+                  className="absolute right-6 z-10 w-14 h-14 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center border border-white/10 cursor-pointer"
+                >
+                  <ArrowRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative max-w-5xl w-full aspect-[16/10] bg-neutral-950 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl z-20 flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {midias[lightboxIndex].type === 'image' ? (
+                <img 
+                  src={resolveUrl(midias[lightboxIndex].url)} 
+                  className="w-full h-full object-contain" 
+                  alt="Lote" 
+                />
+              ) : (
+                <iframe 
+                  src={`https://www.youtube.com/embed/${getYoutubeId(midias[lightboxIndex].url)}?autoplay=1&controls=1&rel=0`}
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              )}
+              
+              {/* Media Info / Counter */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 text-xs font-bold text-neutral-400">
+                {lightboxIndex + 1} / {midias.length}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

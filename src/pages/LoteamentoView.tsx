@@ -730,6 +730,17 @@ export default function LoteamentoView() {
                 </div>
               )}
 
+              <div className="space-y-2">
+                <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Descrição / Memorial Descritivo</label>
+                <textarea
+                  value={activeLote.notes || ''}
+                  onChange={(e) => setActiveLote({ ...activeLote, notes: e.target.value })}
+                  rows={4}
+                  className="w-full px-5 py-4 bg-white/[0.03] border border-white/10 rounded-3xl text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-emerald-500/50 resize-none transition-all"
+                  placeholder="Descrição ou memorial descritivo do lote..."
+                />
+              </div>
+
               <div className="space-y-4">
                 <label className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Galeria Master (Fotos & Vídeos)</label>
 
@@ -791,16 +802,6 @@ export default function LoteamentoView() {
                       </motion.div>
                     ))}
                   </AnimatePresence>
-                </div>
-
-                <div className="pt-2">
-                  <textarea
-                    value={activeLote.notes}
-                    onChange={(e) => setActiveLote({ ...activeLote, notes: e.target.value })}
-                    rows={3}
-                    className="w-full px-5 py-4 bg-white/[0.03] border border-white/5 rounded-3xl text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-emerald-500/50 resize-none transition-all"
-                    placeholder="Anotações internas..."
-                  />
                 </div>
               </div>
 

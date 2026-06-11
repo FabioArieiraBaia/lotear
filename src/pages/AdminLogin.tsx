@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Shield, Loader2, Map, ArrowLeft, Lock, User, Globe, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { resolveUrl } from '../utils/url';
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [config, setConfig] = useState<any>({});
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch(import.meta.env.BASE_URL + 'api/configuracoes')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error("Error fetching config in AdminLogin", err));
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,12 +79,16 @@ export default function AdminLogin() {
           <div className="relative">
             {/* Header / Logo */}
             <div className="flex flex-col items-center mb-12">
-               <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-2xl shadow-emerald-500/20 mb-6 group">
-                  <Shield className="w-10 h-10 text-white group-hover:scale-110 transition-transform" />
+               <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-2xl shadow-emerald-500/20 mb-6 group overflow-hidden p-2">
+                  {config.logo_url ? (
+                    <img src={resolveUrl(config.logo_url)} alt="Logo" className="w-full h-full object-contain" />
+                  ) : (
+                    <Shield className="w-10 h-10 text-white group-hover:scale-110 transition-transform" />
+                  )}
                </div>
                <div className="text-center">
                   <h2 className="text-3xl font-bold text-white font-heading tracking-tight mb-2">Acesso <span className="text-emerald-500">Restrito</span></h2>
-                  <p className="text-neutral-500 text-sm font-medium">Autenticação de Segurança - Lotear SaaS</p>
+                  <p className="text-neutral-500 text-sm font-medium">{config.nome_empresa || 'LotearPro'} — Autenticação de Segurança</p>
                </div>
             </div>
             
@@ -144,9 +157,13 @@ export default function AdminLogin() {
                   </div>
                </div>
                <div className="flex items-center gap-2">
-                 <Map className="w-4 h-4 text-emerald-500" />
+                 {config.logo_url ? (
+                   <img src={resolveUrl(config.logo_url)} alt="Logo" className="w-4 h-4 object-contain" />
+                 ) : (
+                   <Map className="w-4 h-4 text-emerald-500" />
+                 )}
                  <span className="text-xs font-bold text-neutral-500">
-                   LOTEAR<span className="text-white">PRO</span> <span className="text-[9px] text-neutral-600 font-medium ml-2">v2.0 Premium</span>
+                   {config.nome_empresa || 'LotearPro'} <span className="text-[9px] text-neutral-600 font-medium ml-2">v2.0 Premium</span>
                  </span>
                </div>
             </div>

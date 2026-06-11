@@ -17,6 +17,7 @@ import Configuracoes from './pages/Configuracoes';
 import LoteDetail from './pages/LoteDetail';
 import { Map, LogOut, ShieldAlert } from 'lucide-react';
 import { ToastProvider } from './components/Toast';
+import { resolveUrl } from './utils/url';
 
 function Header() {
   const location = useLocation();
@@ -24,11 +25,14 @@ function Header() {
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isPublicView = location.pathname.startsWith('/loteamento/') || location.pathname.startsWith('/lote/');
   const hasToken = !!localStorage.getItem('adminToken');
+  const [config, setConfig] = React.useState<any>({});
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    navigate('/');
-  };
+  React.useEffect(() => {
+    fetch(import.meta.env.BASE_URL + 'api/configuracoes')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error("Error fetching config in App.tsx", err));
+  }, []);
 
   // Hide header completely on the public loteamento view since it has its own HUD, and on admin routes
   if (isPublicView || isAdminRoute) return null;
@@ -36,11 +40,15 @@ function Header() {
   return (
     <header className="bg-neutral-950/80 backdrop-blur-xl border-b border-white/10 text-white p-4 sticky top-0 z-[100] flex justify-between items-center">
       <Link to="/" className="flex items-center gap-3 group">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)] group-hover:shadow-[0_0_25px_rgba(16,185,129,0.6)] transition-all">
-          <Map className="w-5 h-5 text-white" />
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)] group-hover:shadow-[0_0_25px_rgba(16,185,129,0.6)] transition-all overflow-hidden p-1">
+          {config.logo_url ? (
+            <img src={resolveUrl(config.logo_url)} alt="Logo" className="w-full h-full object-contain" />
+          ) : (
+            <Map className="w-5 h-5 text-white" />
+          )}
         </div>
         <h1 className="text-xl font-bold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400">
-          Loteamentos<span className="text-emerald-500">Pro</span>
+          {config.nome_empresa || 'LotearPro'}
         </h1>
       </Link>
       

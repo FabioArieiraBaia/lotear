@@ -6,6 +6,7 @@ import {
   LogOut, User, ChevronRight, Menu, X 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { resolveUrl } from '../utils/url';
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -13,6 +14,14 @@ export default function AdminLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const hasToken = !!localStorage.getItem('adminToken');
   const [userData, setUserData] = useState<any>(null);
+  const [config, setConfig] = useState<any>({});
+
+  useEffect(() => {
+    fetch(import.meta.env.BASE_URL + 'api/configuracoes')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error("Error fetching config in AdminLayout", err));
+  }, []);
 
   useEffect(() => {
     try {
@@ -81,12 +90,16 @@ export default function AdminLayout() {
           {/* Logo / Header */}
           <div className="p-8 pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-                <Map className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.3)] overflow-hidden p-1">
+                {config.logo_url ? (
+                  <img src={resolveUrl(config.logo_url)} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Map className="w-6 h-6 text-white" />
+                )}
               </div>
               <div>
                 <h1 className="text-xl font-bold text-white tracking-tight font-heading">
-                  Lotear<span className="text-emerald-500">Pro</span>
+                  {config.nome_empresa || 'LotearPro'}
                 </h1>
                 <p className="text-[10px] text-neutral-500 uppercase tracking-[0.2em] font-medium leading-none mt-0.5">Gestão Imobiliária</p>
               </div>
@@ -153,8 +166,14 @@ export default function AdminLayout() {
       {!isDesktop && (
         <header className="fixed top-0 left-0 right-0 h-16 bg-black/90 backdrop-blur-2xl border-b border-white/10 z-[30] flex items-center justify-between px-6">
           <div className="flex items-center gap-2">
-            <Map className="w-5 h-5 text-emerald-500" />
-            <span className="font-bold text-white tracking-tight">Lotear<span className="text-emerald-500">Pro</span></span>
+            <div className="w-6 h-6 rounded bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center overflow-hidden p-0.5">
+              {config.logo_url ? (
+                <img src={resolveUrl(config.logo_url)} alt="Logo" className="w-full h-full object-contain" />
+              ) : (
+                <Map className="w-4 h-4 text-white" />
+              )}
+            </div>
+            <span className="font-bold text-white tracking-tight">{config.nome_empresa || 'LotearPro'}</span>
           </div>
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

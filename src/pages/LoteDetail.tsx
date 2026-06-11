@@ -4,7 +4,7 @@ import { resolveUrl } from '../utils/url';
 import { 
   ArrowLeft, MapPin, Maximize, Target, Building, 
   ImageIcon, MonitorPlay, MessageCircle, Zap, Shield, 
-  CheckCircle2, Loader2, Globe, Clock, ChevronRight
+  CheckCircle2, Loader2, Globe, Clock, ChevronRight, X, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,6 +17,11 @@ export default function LoteDetail() {
   const [config, setConfig] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [activeMedia, setActiveMedia] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    setActiveMedia(0);
+  }, [midias]);
 
   useEffect(() => {
     if (!id) return;
@@ -110,7 +115,8 @@ export default function LoteDetail() {
             <motion.div 
                initial={{ opacity: 0, scale: 0.9 }}
                animate={{ opacity: 1, scale: 1 }}
-               className="relative aspect-[16/10] bg-neutral-900 rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] sidebar-glow group"
+               className="relative aspect-[16/10] bg-neutral-900 rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] sidebar-glow group cursor-pointer"
+               onClick={() => { if (midias.length > 0) setLightboxIndex(activeMedia); }}
             >
                <AnimatePresence mode="wait">
                   {midias.length > 0 ? (
@@ -147,6 +153,11 @@ export default function LoteDetail() {
                     </div>
                   )}
                </AnimatePresence>
+                {midias.length > 0 && (
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                     <Maximize className="w-8 h-8 text-white" />
+                  </div>
+                )}
             </motion.div>
 
             {/* THUMBNAILS BAR */}
@@ -174,7 +185,7 @@ export default function LoteDetail() {
             <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-12 space-y-8">
                <h3 className="text-2xl font-black italic uppercase tracking-tighter">Memorial <span className="text-emerald-500">Descritivo</span></h3>
                <p className="text-neutral-400 text-lg leading-relaxed font-medium">
-                  {lote.notes || "Esta unidade faz parte de um projeto urbanístico de alta fidelidade, com geoprocessamento inteligente e integração total com o ecossistema local. Ideal para moradia de alto padrão ou investimento estratégico de longo prazo."}
+                  {lote.notes || "Nenhuma descrição adicional cadastrada para este lote."}
                </p>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                   <div className="flex items-center gap-4 text-neutral-500">
@@ -275,6 +286,74 @@ export default function LoteDetail() {
             </div>
          </div>
       </main>
+
+      {/* LIGHTBOX MODAL */}
+      <AnimatePresence>
+        {lightboxIndex !== null && midias[lightboxIndex] && (
+          <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-black/95 backdrop-blur-xl" 
+              onClick={() => setLightboxIndex(null)} 
+            />
+            
+            <button 
+              onClick={() => setLightboxIndex(null)} 
+              className="absolute top-6 right-6 z-10 w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center border border-white/10 cursor-pointer"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {midias.length > 1 && (
+              <>
+                <button 
+                  onClick={() => setLightboxIndex(prev => prev !== null ? (prev - 1 + midias.length) % midias.length : null)} 
+                  className="absolute left-6 z-10 w-14 h-14 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center border border-white/10 cursor-pointer"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={() => setLightboxIndex(prev => prev !== null ? (prev + 1) % midias.length : null)} 
+                  className="absolute right-6 z-10 w-14 h-14 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center border border-white/10 cursor-pointer"
+                >
+                  <ArrowRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative max-w-5xl w-full aspect-[16/10] bg-neutral-950 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl z-20 flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {midias[lightboxIndex].type === 'image' ? (
+                <img 
+                  src={resolveUrl(midias[lightboxIndex].url)} 
+                  className="w-full h-full object-contain" 
+                  alt="Lote" 
+                />
+              ) : (
+                <iframe 
+                  src={`https://www.youtube.com/embed/${getYoutubeId(midias[lightboxIndex].url)}?autoplay=1&controls=1&rel=0`}
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              )}
+              
+              {/* Media Info / Counter */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 text-xs font-bold text-neutral-400">
+                {lightboxIndex + 1} / {midias.length}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
