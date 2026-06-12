@@ -99,43 +99,43 @@ export default function PublicHome() {
       <div className="relative z-10 w-full max-w-[1400px] mx-auto p-8 md:p-16 min-h-screen flex flex-col">
 
         {/* HERO SECTION 2027 */}
-        <section className="flex flex-col lg:flex-row items-center justify-between pt-12 pb-32 gap-20">
+        <section className="flex flex-col lg:flex-row items-center justify-between pt-6 md:pt-12 pb-16 md:pb-32 gap-10 md:gap-20">
            <motion.div
              initial={{ opacity: 0, y: 50 }}
              animate={{ opacity: 1, y: 0 }}
              transition={{ duration: 1, ease: [0.19, 1, 0.22, 1] }}
-             className="flex-1"
+             className="flex-1 w-full text-center lg:text-left"
            >
-              <div className="inline-flex items-center gap-3 mb-8 bg-white/5 border border-white/10 px-6 py-2.5 rounded-full backdrop-blur-3xl">
-                 <Sparkles className="w-4 h-4 text-emerald-400 fill-emerald-400" />
-                 <span className="text-[10px] text-white font-black uppercase tracking-[0.4em]">Próxima Geração de Loteamentos</span>
+              <div className="inline-flex items-center gap-3 mb-6 md:mb-8 bg-white/5 border border-white/10 px-4 py-2 md:px-6 md:py-2.5 rounded-full backdrop-blur-3xl mx-auto lg:mx-0">
+                 <Sparkles className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
+                 <span className="text-[8px] md:text-[10px] text-white font-black uppercase tracking-[0.3em] md:tracking-[0.4em]">Próxima Geração de Loteamentos</span>
               </div>
 
-              <h1 className="text-7xl md:text-9xl font-bold text-white mb-8 font-heading tracking-tighter leading-[0.9] bg-gradient-to-b from-white via-white to-white/30 bg-clip-text text-transparent">
-                Viva sua <br />
+              <h1 className="text-4xl md:text-7xl lg:text-9xl font-bold text-white mb-6 md:mb-8 font-heading tracking-tighter leading-[0.95] md:leading-[0.9] bg-gradient-to-b from-white via-white to-white/30 bg-clip-text text-transparent">
+                Viva sua <br className="hidden md:inline" />
                 <span className="text-emerald-500 italic">Liberdade.</span>
               </h1>
 
-              <p className="text-neutral-400 text-xl md:text-2xl max-w-xl leading-relaxed font-medium mb-12">
+              <p className="text-neutral-400 text-base md:text-xl lg:text-2xl max-w-xl leading-relaxed font-medium mb-8 md:mb-12 mx-auto lg:mx-0">
                 Experiência imersiva em masterplans digitais. Onde seus sonhos encontram o solo perfeito.
               </p>
 
-              <div className="flex flex-wrap gap-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 md:gap-6 w-full">
                  <button 
                     onClick={() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="px-12 py-6 bg-emerald-500 text-black font-black uppercase tracking-[0.2em] text-xs rounded-3xl hover:bg-white hover:scale-105 transition-all shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex items-center gap-3 group"
+                    className="w-full sm:w-auto px-8 py-5 md:px-12 md:py-6 bg-emerald-500 text-black font-black uppercase tracking-[0.2em] text-xs rounded-2xl md:rounded-3xl hover:bg-white hover:scale-105 transition-all shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex items-center justify-center gap-3 group"
                   >
-                    Explorar Agora <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    Explorar Agora <ArrowRight className="w-4 h-4 md:w-5 h-5 group-hover:translate-x-1 transition-transform" />
                  </button>
-                 <div className="flex items-center gap-6 px-8 py-4 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl">
-                    <div className="flex -space-x-3">
+                 <div className="flex items-center gap-4 md:gap-6 px-6 py-3.5 md:px-8 md:py-4 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl backdrop-blur-xl w-full sm:w-auto justify-center">
+                    <div className="flex -space-x-2.5 md:-space-x-3">
                        {[1,2,3].map(i => (
-                         <div key={i} className="w-10 h-10 rounded-full border-2 border-black bg-neutral-800 flex items-center justify-center text-[10px] font-bold text-white">
+                         <div key={i} className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-black bg-neutral-800 flex items-center justify-center text-[9px] md:text-[10px] font-bold text-white">
                             +
                          </div>
                        ))}
                     </div>
-                    <p className="text-xs text-neutral-400 font-bold uppercase tracking-widest"><span className="text-white">+500</span> Vizinhos felizes</p>
+                    <p className="text-[9px] md:text-xs text-neutral-400 font-bold uppercase tracking-widest"><span className="text-white">+500</span> Vizinhos felizes</p>
                  </div>
               </div>
            </motion.div>
@@ -280,22 +280,27 @@ export default function PublicHome() {
         </section>
 
         {/* FOOTER CALL TO ACTION 2027 */}
-        <section className="mt-40 mb-20">
-           <div className="relative p-20 rounded-[4rem] bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent border border-white/10 overflow-hidden text-center sidebar-glow">
+        <section className="mt-20 md:mt-40 mb-10 md:mb-20 w-full">
+           <div className="relative p-6 md:p-20 rounded-3xl md:rounded-[4rem] bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent border border-white/10 overflow-hidden text-center sidebar-glow">
               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2" />
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2" />
 
-              <div className="relative z-10 max-w-2xl mx-auto">
-                 <h2 className="text-5xl md:text-6xl font-bold text-white font-heading tracking-tighter mb-8 leading-none">Interessado em negociar <br /><span className="text-emerald-500">direto da fonte?</span></h2>
-                 <p className="text-neutral-400 text-lg mb-12 font-medium">Nossos corretores estão prontos para oferecer condições exclusivas usando geoprocessamento inteligente.</p>
+              <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center">
+                 <h2 className="text-2xl md:text-5xl lg:text-6xl font-bold text-white font-heading tracking-tighter mb-6 md:mb-8 leading-tight md:leading-none">
+                    Interessado em negociar <br className="hidden md:inline" />
+                    <span className="text-emerald-500">direto da fonte?</span>
+                 </h2>
+                 <p className="text-neutral-400 text-sm md:text-lg mb-8 md:mb-12 font-medium leading-relaxed max-w-lg">
+                    Nossos corretores estão prontos para oferecer condições exclusivas usando geoprocessamento inteligente.
+                 </p>
 
                  <a
                     href={`https://wa.me/${config.whatsapp || '5500000000000'}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-4 px-16 py-7 bg-white text-black rounded-full font-black uppercase text-xs tracking-[0.3em] hover:bg-emerald-500 hover:scale-105 active:scale-95 transition-all shadow-2xl"
+                    className="inline-flex items-center justify-center gap-3 w-full md:w-auto px-8 py-5 md:px-16 md:py-7 bg-white text-black rounded-2xl md:rounded-full font-black uppercase text-xs tracking-[0.2em] md:tracking-[0.3em] hover:bg-emerald-500 hover:scale-105 active:scale-95 transition-all shadow-2xl"
                  >
-                    <MessageCircle className="w-6 h-6 fill-black" /> Falar com Especialista
+                    <MessageCircle className="w-5 h-5 md:w-6 md:h-6 fill-black" /> Falar com Especialista
                  </a>
               </div>
            </div>

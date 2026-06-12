@@ -92,13 +92,13 @@ export default function LoteDetail() {
       </div>
 
       {/* HEADER HUD */}
-      <header className="fixed top-0 inset-x-0 z-[100] p-6 lg:p-10 pointer-events-none">
+      <header className="fixed top-0 inset-x-0 z-[100] p-4 md:p-6 lg:p-10 pointer-events-none">
          <div className="flex items-center justify-between">
             <button 
               onClick={() => navigate(-1)}
-              className="pointer-events-auto flex items-center justify-center w-14 h-14 rounded-2xl bg-white/5 backdrop-blur-3xl border border-white/10 text-white hover:bg-emerald-500 hover:text-black transition-all hover:scale-110 shadow-2xl"
+              className="pointer-events-auto flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-black/60 md:bg-white/5 backdrop-blur-3xl border border-white/10 text-white hover:bg-emerald-500 hover:text-black transition-all hover:scale-110 shadow-2xl"
             >
-               <ArrowLeft className="w-6 h-6" />
+               <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
             </button>
             <div className="pointer-events-auto hidden md:flex items-center gap-4 bg-white/5 backdrop-blur-3xl border border-white/10 px-8 py-4 rounded-3xl shadow-2xl">
                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
@@ -109,14 +109,14 @@ export default function LoteDetail() {
          </div>
       </header>
 
-      <main className="relative z-10 pt-32 pb-20 px-6 lg:px-20 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
+      <main className="relative z-10 pt-20 md:pt-32 pb-20 px-4 md:px-6 lg:px-20 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-12 lg:gap-20">
          
          {/* LEFT COLLUMN: MEDIA VISUALIZER */}
-         <div className="lg:col-span-7 space-y-8">
+         <div className="lg:col-span-7 space-y-6 md:space-y-8">
             <motion.div 
                initial={{ opacity: 0, scale: 0.9 }}
                animate={{ opacity: 1, scale: 1 }}
-               className="relative aspect-[16/10] bg-neutral-900 rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] sidebar-glow group cursor-pointer"
+               className="relative aspect-[16/10] bg-neutral-900 rounded-2xl md:rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] sidebar-glow group cursor-pointer"
                onClick={() => { if (midias.length > 0) setLightboxIndex(activeMedia); }}
             >
                <AnimatePresence mode="wait">
@@ -149,7 +149,7 @@ export default function LoteDetail() {
                     )
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-neutral-800">
-                       <ImageIcon className="w-20 h-20 mb-4 opacity-20" />
+                       <ImageIcon className="w-16 h-16 md:w-20 md:h-20 mb-4 opacity-20" />
                        <span className="text-xs font-black uppercase tracking-widest">Sem Mídia Registrada</span>
                     </div>
                   )}
@@ -163,18 +163,18 @@ export default function LoteDetail() {
 
             {/* THUMBNAILS BAR */}
             {midias.length > 1 && (
-               <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+               <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 custom-scrollbar">
                   {midias.map((m, idx) => (
                      <button 
                         key={m.id}
                         onClick={() => setActiveMedia(idx)}
-                        className={`flex-shrink-0 w-24 h-16 rounded-xl border-2 transition-all overflow-hidden ${activeMedia === idx ? 'border-emerald-500 scale-105' : 'border-white/5 opacity-40 hover:opacity-100'}`}
+                        className={`flex-shrink-0 w-20 h-14 md:w-24 md:h-16 rounded-lg md:rounded-xl border-2 transition-all overflow-hidden ${activeMedia === idx ? 'border-emerald-500 scale-105' : 'border-white/5 opacity-40 hover:opacity-100'}`}
                      >
                         {m.type === 'image' ? (
                            <img src={resolveUrl(m.url)} className="w-full h-full object-cover" />
                         ) : (
                            <div className="w-full h-full bg-red-500/20 flex items-center justify-center">
-                              <MonitorPlay className="w-6 h-6 text-red-500" />
+                              <MonitorPlay className="w-5 h-5 md:w-6 md:h-6 text-red-500" />
                            </div>
                         )}
                      </button>
@@ -183,107 +183,107 @@ export default function LoteDetail() {
             )}
 
             {/* DESCRIPTION SECTION */}
-            <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-12 space-y-8">
-               <h3 className="text-2xl font-black italic uppercase tracking-tighter">Memorial <span className="text-emerald-500">Descritivo</span></h3>
-               <p className="text-neutral-400 text-lg leading-relaxed font-medium">
+            <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-2xl md:rounded-[3.5rem] p-6 md:p-12 space-y-6 md:space-y-8">
+               <h3 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter">Memorial <span className="text-emerald-500">Descritivo</span></h3>
+               <p className="text-neutral-400 text-sm md:text-lg leading-relaxed font-medium">
                   {lote.notes || "Nenhuma descrição adicional cadastrada para este lote."}
                </p>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                  <div className="flex items-center gap-4 text-neutral-500">
-                     <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                     <span className="text-sm font-bold uppercase tracking-widest font-mono">Topografia Plana</span>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-2 md:pt-4">
+                  <div className="flex items-center gap-3 md:gap-4 text-neutral-500">
+                     <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
+                     <span className="text-xs md:text-sm font-bold uppercase tracking-widest font-mono">Topografia Plana</span>
                   </div>
-                  <div className="flex items-center gap-4 text-neutral-500">
-                     <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                     <span className="text-sm font-bold uppercase tracking-widest font-mono">Infraestrutura Completa</span>
+                  <div className="flex items-center gap-3 md:gap-4 text-neutral-500">
+                     <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
+                     <span className="text-xs md:text-sm font-bold uppercase tracking-widest font-mono">Infraestrutura Completa</span>
                   </div>
-                  <div className="flex items-center gap-4 text-neutral-500">
-                     <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                     <span className="text-sm font-bold uppercase tracking-widest font-mono">Matrícula Individualizada</span>
+                  <div className="flex items-center gap-3 md:gap-4 text-neutral-500">
+                     <CheckCircle2 className="w-4 h-4 md:w-5 h-5 text-emerald-500" />
+                     <span className="text-xs md:text-sm font-bold uppercase tracking-widest font-mono">Matrícula Individualizada</span>
                   </div>
-                  <div className="flex items-center gap-4 text-neutral-500">
-                     <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                     <span className="text-sm font-bold uppercase tracking-widest font-mono">Monitoramento 24h</span>
+                  <div className="flex items-center gap-3 md:gap-4 text-neutral-500">
+                     <CheckCircle2 className="w-4 h-4 md:w-5 h-5 text-emerald-500" />
+                     <span className="text-xs md:text-sm font-bold uppercase tracking-widest font-mono">Monitoramento 24h</span>
                   </div>
                </div>
             </div>
          </div>
 
          {/* RIGHT COLLUMN: SPECIFICATIONS & CRM */}
-         <div className="lg:col-span-5 space-y-8 lg:sticky lg:top-32 h-fit">
+         <div className="lg:col-span-5 space-y-6 md:space-y-8 lg:sticky lg:top-32 h-fit">
             <motion.div 
                initial={{ opacity: 0, x: 50 }}
                animate={{ opacity: 1, x: 0 }}
-               className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-12 shadow-2xl sidebar-glow relative overflow-hidden"
+               className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-2xl md:rounded-[3.5rem] p-6 md:p-12 shadow-2xl sidebar-glow relative overflow-hidden"
             >
-               <div className="absolute top-0 right-0 p-12 text-emerald-500/5 rotate-12">
-                  <Zap className="w-40 h-40" />
+               <div className="absolute top-0 right-0 p-6 md:p-12 text-emerald-500/5 rotate-12 pointer-events-none">
+                  <Zap className="w-24 h-24 md:w-40 md:h-40" />
                </div>
 
-               <div className="relative z-10 space-y-10">
+               <div className="relative z-10 space-y-6 md:space-y-10">
                   <header>
-                     <div className={`inline-flex items-center gap-2.5 px-4 py-1.5 rounded-xl border mb-6 ${
+                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg border mb-4 md:mb-6 ${
                         lote.status === 'Disponível' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-500'
                      }`}>
                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${lote.status === 'Disponível' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{lote.status}</span>
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">{lote.status}</span>
                      </div>
-                     <h2 className="text-6xl font-black italic uppercase tracking-tighter leading-none mb-4">{lote.name}</h2>
-                     <p className="text-white/40 text-xs font-black uppercase tracking-[0.4em] mb-12 flex items-center gap-2">
-                        <MapPin className="w-4 h-4" /> {loteamento?.name}
+                     <h2 className="text-3xl md:text-5xl lg:text-6xl font-black italic uppercase tracking-tighter leading-none mb-3 break-words">{lote.name}</h2>
+                     <p className="text-white/40 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] md:tracking-[0.4em] mb-6 md:mb-12 flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5" /> {loteamento?.name}
                      </p>
                   </header>
 
-                  <div className="grid grid-cols-2 gap-6">
-                     <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 group hover:bg-emerald-500/5 transition-colors">
-                        <Maximize className="w-5 h-5 text-emerald-500 mb-4" />
-                        <p className="text-[10px] text-neutral-600 font-black uppercase tracking-widest mb-1">Área Total</p>
-                        <p className="text-3xl font-black italic tracking-tighter">{lote.area} <span className="text-xs text-neutral-500 not-italic">m²</span></p>
+                  <div className="grid grid-cols-2 gap-4 md:gap-6">
+                     <div className="bg-white/5 p-4 md:p-8 rounded-xl md:rounded-[2rem] border border-white/5 group hover:bg-emerald-500/5 transition-colors">
+                        <Maximize className="w-4 h-4 md:w-5 md:h-5 text-emerald-500 mb-3 md:mb-4" />
+                        <p className="text-[8px] md:text-[10px] text-neutral-600 font-black uppercase tracking-widest mb-1">Área Total</p>
+                        <p className="text-lg md:text-3xl font-black italic tracking-tighter truncate">{lote.area} <span className="text-[10px] md:text-xs text-neutral-500 not-italic">m²</span></p>
                      </div>
-                     <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5">
-                        <Globe className="w-5 h-5 text-emerald-500 mb-4" />
-                        <p className="text-[10px] text-neutral-600 font-black uppercase tracking-widest mb-1">Tipo de Lote</p>
-                        <p className="text-xl font-bold uppercase tracking-tight">Residencial</p>
+                     <div className="bg-white/5 p-4 md:p-8 rounded-xl md:rounded-[2rem] border border-white/5">
+                        <Globe className="w-4 h-4 md:w-5 md:h-5 text-emerald-500 mb-3 md:mb-4" />
+                        <p className="text-[8px] md:text-[10px] text-neutral-600 font-black uppercase tracking-widest mb-1">Tipo de Lote</p>
+                        <p className="text-xs md:text-lg font-bold uppercase tracking-tight truncate">Residencial</p>
                      </div>
                   </div>
 
-                  <div className="space-y-4 pt-6">
+                  <div className="space-y-4 pt-4 md:pt-6">
                      <button 
                         onClick={handleWhatsApp}
-                        className="w-full py-7 bg-emerald-500 text-black font-black uppercase text-xs tracking-[0.3em] rounded-[2rem] hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-emerald-500/20 flex items-center justify-center gap-3 group"
+                        className="w-full py-4 md:py-7 bg-emerald-500 text-black font-black uppercase text-xs tracking-[0.2em] md:tracking-[0.3em] rounded-xl md:rounded-[2rem] hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-emerald-500/20 flex items-center justify-center gap-2 md:gap-3 group"
                      >
-                        <MessageCircle className="w-5 h-5 fill-black group-hover:rotate-12 transition-transform" />
+                        <MessageCircle className="w-4 h-4 md:w-5 md:h-5 fill-black group-hover:rotate-12 transition-transform" />
                         Quero Saber Mais
                      </button>
-                     <p className="text-center text-[9px] text-neutral-600 font-black uppercase tracking-widest">Atendimento Digital Imediato</p>
+                     <p className="text-center text-[8px] md:text-[9px] text-neutral-600 font-black uppercase tracking-widest">Atendimento Digital Imediato</p>
                   </div>
 
-                  <div className="pt-8 border-t border-white/5 flex items-center justify-around">
-                     <div className="text-center space-y-2">
-                        <Clock className="w-4 h-4 text-emerald-500/40 mx-auto" />
+                  <div className="pt-6 md:pt-8 border-t border-white/5 flex items-center justify-around">
+                     <div className="text-center space-y-1 md:space-y-2">
+                        <Clock className="w-3.5 h-3.5 text-emerald-500/40 mx-auto" />
                         <p className="text-[8px] text-neutral-600 uppercase font-black">Última Ref.</p>
-                        <p className="text-[10px] text-white/50 font-bold">Hoje</p>
+                        <p className="text-[9px] md:text-[10px] text-white/50 font-bold">Hoje</p>
                      </div>
-                     <div className="w-px h-8 bg-white/5" />
-                     <div className="text-center space-y-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500/40 mx-auto" />
+                     <div className="w-px h-6 md:h-8 bg-white/5" />
+                     <div className="text-center space-y-1 md:space-y-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/40 mx-auto" />
                         <p className="text-[8px] text-neutral-600 uppercase font-black">Disponib.</p>
-                        <p className="text-[10px] text-white/50 font-bold">Realtime</p>
+                        <p className="text-[9px] md:text-[10px] text-white/50 font-bold">Realtime</p>
                      </div>
                   </div>
                </div>
             </motion.div>
 
             {/* CONTEXT CARDS */}
-            <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-6 rounded-[2rem]">
-               <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                  <Globe className="w-5 h-5 text-blue-500" />
+            <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-4 md:p-6 rounded-xl md:rounded-[2rem]">
+               <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <Globe className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
                </div>
-               <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-white mb-0.5 italic">Geofencing Ativado</h4>
-                  <p className="text-[9px] text-neutral-500 uppercase font-bold tracking-widest">Coordenadas Verificadas</p>
+               <div className="min-w-0">
+                  <h4 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white mb-0.5 italic truncate">Geofencing Ativado</h4>
+                  <p className="text-[8px] md:text-[9px] text-neutral-500 uppercase font-bold tracking-widest truncate">Coordenadas Verificadas</p>
                </div>
-               <ChevronRight className="w-4 h-4 text-neutral-500 ml-auto" />
+               <ChevronRight className="w-4 h-4 text-neutral-500 ml-auto shrink-0" />
             </div>
          </div>
       </main>
