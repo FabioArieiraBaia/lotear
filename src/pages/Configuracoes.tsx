@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Settings, MessageSquare, Globe, ShieldCheck, Zap, Upload, Image as ImageIcon } from 'lucide-react';
+import { Save, Loader2, Settings, MessageSquare, Globe, ShieldCheck, Zap, Upload, Image as ImageIcon, MonitorPlay } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { resolveUrl } from '../utils/url';
 
