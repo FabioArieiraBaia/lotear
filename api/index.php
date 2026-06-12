@@ -91,13 +91,18 @@ try {
         handleGetLoteamentoLotes((int)$matches[1]);
     }
     
+    // DELETE /api/loteamentos/:id/lotes (deletar todos os lotes do loteamento)
+    elseif (preg_match('#^/api/loteamentos/(\d+)/lotes$#', $path, $matches) && $method === 'DELETE') {
+        handleDeleteLoteamentoLotes((int)$matches[1]);
+    }
+
     // DELETE /api/loteamentos/:id
     elseif (preg_match('#^/api/loteamentos/(\d+)$#', $path, $matches) && $method === 'DELETE') {
         handleDeleteLoteamento((int)$matches[1]);
     }
 
-    // PUT /api/loteamentos/:id
-    elseif (preg_match('#^/api/loteamentos/(\d+)$#', $path, $matches) && $method === 'PUT') {
+    // PUT or POST /api/loteamentos/:id
+    elseif (preg_match('#^/api/loteamentos/(\d+)$#', $path, $matches) && ($method === 'PUT' || $method === 'POST')) {
         handleUpdateLoteamento((int)$matches[1]);
     }
     
@@ -271,6 +276,11 @@ try {
     // DELETE /api/usuarios/:id
     elseif (preg_match('#^/api/usuarios/(\d+)$#', $path, $matches) && $method === 'DELETE') {
         handleDeleteUsuario((int)$matches[1]);
+    }
+
+    // GET /api/carga-lotes (or /api/carga_lotes)
+    elseif (($path === '/api/carga-lotes' || $path === '/api/carga_lotes') && $method === 'GET') {
+        require_once __DIR__ . '/carga_lotes.php';
     }
     
     // 404 - Route not found

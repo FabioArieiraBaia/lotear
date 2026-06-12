@@ -177,13 +177,43 @@ function handleUpdateLoteamento($id) {
         return;
     }
 
-    // Parse multipart/form-data for PUT requests
+    // Parse multipart/form-data for PUT/POST requests
     $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
     $name = $loteamento['name'];
     $imageUrl = $loteamento['imageUrl'];
 
-    // Handle multipart/form-data
-    if (stripos($contentType, 'multipart/form-data') !== false) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (isset($_POST['name'])) {
+            $name = trim($_POST['name']);
+        }
+        
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+            $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+            
+            if (in_array($ext, $allowedExts)) {
+                $uploadDir = __DIR__ . '/../uploads/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+
+                $uniqueName = time() . '-' . mt_rand(100000000, 999999999) . '.' . $ext;
+                $destPath = $uploadDir . $uniqueName;
+
+                if (move_uploaded_file($_FILES['image']['tmp_name'], $destPath)) {
+                    if (!empty($loteamento['imageUrl'])) {
+                        $oldPath = __DIR__ . '/../' . $loteamento['imageUrl'];
+                        if (file_exists($oldPath)) {
+                            unlink($oldPath);
+                        }
+                    }
+                    $imageUrl = 'uploads/' . $uniqueName;
+                }
+            }
+        }
+    }
+    // Handle multipart/form-data via PUT (fallback)
+    elseif (stripos($contentType, 'multipart/form-data') !== false) {
         // Read raw input and parse
         $rawData = file_get_contents('php://input');
         $boundary = substr($contentType, strpos($contentType, 'boundary=') + 9);
@@ -193,29 +223,25 @@ function handleUpdateLoteamento($id) {
             if (empty($part) || $part == "--\r\n") continue;
 
             // Parse each part
-            if (strpos($part, 'name="name"') !== false) {
-                // Extract name value
-                $lines = explode("\r\n", $part);
-                $value = end($lines);
-                if (!empty($value)) {
-                    $name = $value;
+            $pos = strpos($part, "\r\n\r\n");
+            if ($pos !== false) {
+                $headers = substr($part, 0, $pos);
+                $body = substr($part, $pos + 4);
+                // Remove trailing CRLF
+                if (substr($body, -2) === "\r\n") {
+                    $body = substr($body, 0, -2);
                 }
-            }
 
-            if (strpos($part, 'name="image"') !== false && strpos($part, 'filename=') !== false) {
-                // Extract file info
-                preg_match('/filename="([^"]+)"/', $part, $fileMatch);
-                $filename = $fileMatch[1] ?? '';
-                $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-                $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+                if (strpos($headers, 'name="name"') !== false) {
+                    $name = trim($body);
+                }
 
-                if (in_array($ext, $allowedExts)) {
-                    // Find content after double newline
-                    $contentStart = strpos($part, "\r\n\r\n");
-                    if ($contentStart !== false) {
-                        $fileContent = substr($part, $contentStart + 4);
-                        $fileContent = rtrim($fileContent, "\r\n-");
+                if (strpos($headers, 'name="image"') !== false && preg_match('/filename="([^"]+)"/', $headers, $fileMatch)) {
+                    $filename = $fileMatch[1] ?? '';
+                    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                    $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
 
+                    if (in_array($ext, $allowedExts)) {
                         $uploadDir = __DIR__ . '/../uploads/';
                         if (!is_dir($uploadDir)) {
                             mkdir($uploadDir, 0755, true);
@@ -224,7 +250,7 @@ function handleUpdateLoteamento($id) {
                         $uniqueName = time() . '-' . mt_rand(100000000, 999999999) . '.' . $ext;
                         $destPath = $uploadDir . $uniqueName;
 
-                        if (file_put_contents($destPath, $fileContent)) {
+                        if (file_put_contents($destPath, $body)) {
                             // Delete old image if exists
                             if (!empty($loteamento['imageUrl'])) {
                                 $oldPath = __DIR__ . '/../' . $loteamento['imageUrl'];
@@ -256,3 +282,56 @@ function handleUpdateLoteamento($id) {
         'imageUrl' => $imageUrl
     ]);
 }
+
+function handleDeleteLoteamentoLotes($loteamentoId) {
+    requireAuth();
+    $db = getDatabase();
+    
+    $db->beginTransaction();
+    try {
+        // Obter IDs dos lotes desse loteamento
+        $stmt = $db->prepare('SELECT id FROM lotes WHERE loteamentoId = ?');
+        $stmt->execute([$loteamentoId]);
+        $loteIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        if (!empty($loteIds)) {
+            $placeholders = implode(',', array_fill(0, count($loteIds), '?'));
+            
+            // Deletar pagamentos
+            $stmt = $db->prepare("DELETE FROM pagamentos WHERE loteId IN ($placeholders)");
+            $stmt->execute($loteIds);
+            
+            // Deletar parcelas
+            $stmt = $db->prepare("DELETE FROM parcelas WHERE loteId IN ($placeholders)");
+            $stmt->execute($loteIds);
+            
+            // Deletar comissões
+            $stmt = $db->prepare("DELETE FROM comissoes WHERE loteId IN ($placeholders)");
+            $stmt->execute($loteIds);
+            
+            // Deletar mídias físicas
+            $stmt = $db->prepare("SELECT url FROM lote_midia WHERE loteId IN ($placeholders) AND type = 'image'");
+            $stmt->execute($loteIds);
+            $images = $stmt->fetchAll();
+            foreach ($images as $img) {
+                $filePath = __DIR__ . '/../' . $img['url'];
+                if (file_exists($filePath)) @unlink($filePath);
+            }
+            
+            // Deletar lote_midia
+            $stmt = $db->prepare("DELETE FROM lote_midia WHERE loteId IN ($placeholders)");
+            $stmt->execute($loteIds);
+            
+            // Deletar lotes
+            $stmt = $db->prepare("DELETE FROM lotes WHERE id IN ($placeholders)");
+            $stmt->execute($loteIds);
+        }
+        
+        $db->commit();
+        jsonResponse(['success' => true, 'message' => 'Todos os lotes foram deletados com sucesso']);
+    } catch (Exception $e) {
+        $db->rollBack();
+        jsonResponse(['error' => 'Erro ao deletar lotes: ' . $e->getMessage()], 500);
+    }
+}
+

@@ -159,6 +159,8 @@ export default function LoteamentoView() {
   const [editName, setEditName] = useState('');
   const [editImage, setEditImage] = useState<File | null>(null);
   const [savingLoteamento, setSavingLoteamento] = useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const startDrawing = () => {
     if (mapRef.current) {
@@ -469,8 +471,38 @@ export default function LoteamentoView() {
       setLotes(prev => prev.filter(l => l.id !== activeLote.id));
       setActiveLote(null);
       setShowDeleteConfirm(false);
+      toast('Lote deletado com sucesso!', 'success');
     } catch (err) {
       console.error("Error deleting lote:", err);
+      toast('Erro ao deletar lote.', 'error');
+    }
+  };
+
+  const handleDeleteAllLotes = async () => {
+    if (!id || deletingAll) return;
+    setDeletingAll(true);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch(import.meta.env.BASE_URL + `api/loteamentos/${id}/lotes`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        setLotes([]);
+        setActiveLote(null);
+        setShowDeleteAllConfirm(false);
+        toast('Todos os lotes foram deletados com sucesso!', 'success');
+      } else {
+        toast('Erro ao deletar todos os lotes.', 'error');
+      }
+    } catch (err) {
+      console.error("Error deleting all lotes:", err);
+      toast('Erro ao conectar com o servidor.', 'error');
+    } finally {
+      setDeletingAll(false);
     }
   };
 
@@ -486,7 +518,7 @@ export default function LoteamentoView() {
       }
 
       const res = await fetch(import.meta.env.BASE_URL + `api/loteamentos/${loteamento.id}`, {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
@@ -496,9 +528,15 @@ export default function LoteamentoView() {
         setLoteamento({ ...loteamento, name: data.name, imageUrl: data.imageUrl });
         setShowEditModal(false);
         setEditImage(null);
+        toast('Nome do empreendimento atualizado com sucesso!', 'success');
+      } else {
+        const errBody = await res.text();
+        console.error("Update loteamento failed:", res.status, errBody);
+        toast(`Erro ao salvar: Erro ${res.status}`, 'error');
       }
     } catch (err) {
       console.error("Error updating loteamento:", err);
+      toast('Não foi possível conectar ao servidor.', 'error');
     } finally {
       setSavingLoteamento(false);
     }
@@ -836,11 +874,47 @@ export default function LoteamentoView() {
 
             <button
               onClick={startDrawing}
-              className="w-full h-14 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 group mb-8"
+              className="w-full h-14 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 group mb-4"
             >
               <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
               Desenhar Novo Lote
             </button>
+
+            {lotes.length > 0 && (
+              <div className="w-full mb-8">
+                {!showDeleteAllConfirm ? (
+                  <button
+                    onClick={() => setShowDeleteAllConfirm(true)}
+                    className="w-full h-12 bg-red-500/10 border border-red-500/20 text-red-400 font-bold rounded-2xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Deletar Todos os Lotes ({lotes.length})
+                  </button>
+                ) : (
+                  <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-3">
+                    <p className="text-xs text-red-400 font-medium leading-relaxed">
+                      Tem certeza que deseja deletar permanentemente <strong>TODOS os {lotes.length} lotes</strong> deste empreendimento? Esta ação não pode ser desfeita!
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleDeleteAllLotes}
+                        disabled={deletingAll}
+                        className="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-all"
+                      >
+                        {deletingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        Sim, Deletar Tudo
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteAllConfirm(false)}
+                        className="px-4 py-2 bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white text-xs font-bold rounded-xl transition-all"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-4 w-full">
               <h4 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest text-left px-2">Guia de Cores</h4>
@@ -973,12 +1047,27 @@ export default function LoteamentoView() {
                 </div>
 
                 {loteamento.imageUrl && (
-                  <div className="aspect-video rounded-xl overflow-hidden border border-white/10">
-                    <img
-                      src={resolveUrl(loteamento.imageUrl)}
-                      alt={loteamento.name}
-                      className="w-full h-full object-cover opacity-60"
-                    />
+                  <div className="aspect-video rounded-xl overflow-hidden border border-white/10 flex items-center justify-center bg-black relative">
+                    {loteamento.imageUrl.toLowerCase().endsWith('.pdf') ? (
+                      mapImageUrl ? (
+                        <img
+                          src={mapImageUrl}
+                          alt={loteamento.name}
+                          className="w-full h-full object-cover opacity-60"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center p-4 text-center">
+                          <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mb-2" />
+                          <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Processando PDF...</span>
+                        </div>
+                      )
+                    ) : (
+                      <img
+                        src={resolveUrl(loteamento.imageUrl)}
+                        alt={loteamento.name}
+                        className="w-full h-full object-cover opacity-60"
+                      />
+                    )}
                   </div>
                 )}
               </div>
