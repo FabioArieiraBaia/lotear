@@ -190,25 +190,28 @@ export default function PublicHome() {
            </motion.div>
         </section>
 
-        {/* LISTAGEM DE EMPREENDIMENTOS */}
-        <section id="inventory" className="relative pt-20">
-           <div className="flex flex-col md:flex-row items-end justify-between mb-20 gap-8">
-              <div className="flex-1">
-                 <h2 className="text-5xl font-bold text-white font-heading tracking-tighter mb-4 leading-none">Empreendimentos <br /><span className="text-emerald-500">Exclusivos</span></h2>
-                 <p className="text-neutral-500 font-medium text-lg max-w-md italic">Tecnologia avançada para você escolher onde construir sua história.</p>
-              </div>
-              <div className="flex items-center gap-12 text-[10px] text-white/30 uppercase font-black tracking-[0.4em]">
-                 <div className="flex flex-col items-end">
-                    <span>Total Lotes</span>
-                    <span className="text-2xl text-white font-mono mt-2">{loteamentos.length}</span>
-                 </div>
-                 <div className="w-px h-12 bg-white/10" />
-                 <div className="flex flex-col items-end">
-                    <span>Disponíveis</span>
-                    <span className="text-2xl text-emerald-500 font-mono mt-2">{Object.values(lotesCounts).reduce((acc: number, c: any) => acc + (c.disponiveis || 0), 0)}</span>
-                 </div>
-              </div>
-           </div>
+         <section id="inventory" className="relative pt-10 md:pt-20 w-full">
+            <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-10 md:mb-20 gap-6 md:gap-8 w-full">
+               <div className="flex-1 min-w-0">
+                  <h2 className="text-3xl md:text-5xl font-bold text-white font-heading tracking-tighter mb-3 md:mb-4 leading-tight md:leading-none break-words">
+                     Empreendimentos <br className="hidden md:inline" /><span className="text-emerald-500">Exclusivos</span>
+                  </h2>
+                  <p className="text-neutral-500 font-medium text-sm md:text-lg max-w-md italic leading-relaxed">
+                     Tecnologia avançada para você escolher onde construir sua história.
+                  </p>
+               </div>
+               <div className="flex items-center gap-6 md:gap-12 text-[9px] md:text-[10px] text-white/30 uppercase font-black tracking-[0.2em] md:tracking-[0.4em] w-full md:w-auto justify-start md:justify-end">
+                  <div className="flex flex-col items-start md:items-end">
+                     <span>Total Lotes</span>
+                     <span className="text-xl md:text-2xl text-white font-mono mt-1.5 md:mt-2">{loteamentos.length}</span>
+                  </div>
+                  <div className="w-px h-8 md:h-12 bg-white/10" />
+                  <div className="flex flex-col items-start md:items-end">
+                     <span>Disponíveis</span>
+                     <span className="text-xl md:text-2xl text-emerald-500 font-mono mt-1.5 md:mt-2">{Object.values(lotesCounts).reduce((acc: number, c: any) => acc + (c.disponiveis || 0), 0)}</span>
+                  </div>
+               </div>
+            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
               {loteamentos.map((lot, idx) => (
