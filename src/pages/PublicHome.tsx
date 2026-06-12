@@ -81,19 +81,47 @@ export default function PublicHome() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#020202] font-sans selection:bg-emerald-500/30">
 
+      {/* BACKGROUND VIDEO OR MAP (YOUTUBE BG CONFIGURADO) */}
+      {(() => {
+        const getYoutubeId = (url: string) => {
+          if (!url) return null;
+          const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+          const match = url.match(regExp);
+          return (match && match[2].length === 11) ? match[2] : null;
+        };
+        const videoId = getYoutubeId(config.hero_video_url);
+
+        if (videoId) {
+          return (
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-20 grayscale brightness-75 scale-105">
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&showinfo=0&rel=0&iv_load_policy=3&playsinline=1`}
+                className="w-[100vw] h-[56.25vw] min-h-[100vh] min-w-[177.77vh] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                title="Hero Background Video"
+              ></iframe>
+              <div className="absolute inset-0 bg-black/60" />
+            </div>
+          );
+        }
+
+        return (
+          /* BACKGROUND MAP (DIMMED) (FALLBACK) */
+          <div className="absolute inset-0 z-1 opacity-[0.08] pointer-events-none grayscale brightness-50">
+            <MapContainer center={[-15.78, -47.92]} zoom={5} zoomControl={false} attributionControl={false} className="w-full h-full bg-black">
+              <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+            </MapContainer>
+            <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
+          </div>
+        );
+      })()}
+
       {/* BACKGROUND AMBIENT LAYER */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
          <div className="absolute top-[-20%] left-[-10%] w-[1000px] h-[1000px] bg-emerald-500/10 blur-[180px] rounded-full opacity-40 animate-pulse" />
          <div className="absolute bottom-[-10%] right-[-10%] w-[800px] h-[800px] bg-blue-500/10 blur-[150px] rounded-full opacity-30" />
          <div className="absolute top-[40%] left-[60%] w-[400px] h-[400px] bg-purple-500/5 blur-[120px] rounded-full" />
-      </div>
-
-      {/* BACKGROUND MAP (DIMMED) */}
-      <div className="absolute inset-0 z-1 opacity-[0.08] pointer-events-none grayscale brightness-50">
-        <MapContainer center={[-15.78, -47.92]} zoom={5} zoomControl={false} attributionControl={false} className="w-full h-full bg-black">
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-        </MapContainer>
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
       </div>
 
       <div className="relative z-10 w-full max-w-[1400px] mx-auto p-8 md:p-16 min-h-screen flex flex-col">

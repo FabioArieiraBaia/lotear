@@ -11,7 +11,8 @@ export default function Configuracoes() {
     nome_empresa: 'LotearPro',
     telefone: '',
     email: '',
-    logo_url: ''
+    logo_url: '',
+    hero_video_url: ''
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -189,6 +190,21 @@ export default function Configuracoes() {
                       className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:outline-none focus:border-emerald-500 transition-all placeholder-neutral-700"
                     />
                     <p className="text-xs text-neutral-600 mt-3 px-1 italic">Este número deve conter código do país e DDD (somente números) para o WhatsApp CRM.</p>
+                 </div>
+
+                 {/* YOUTUBE BACKGROUND VIDEO */}
+                 <div>
+                    <label className="block text-[10px] text-neutral-500 uppercase font-black tracking-[0.3em] mb-3 px-1 flex items-center gap-2">
+                       <MonitorPlay className="w-3.5 h-3.5 text-red-500" /> Vídeo de Fundo do Hero (Link do YouTube)
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                      value={config.hero_video_url || ''}
+                      onChange={e => setConfig({...config, hero_video_url: e.target.value})}
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:outline-none focus:border-emerald-500 transition-all placeholder-neutral-700"
+                    />
+                    <p className="text-xs text-neutral-600 mt-3 px-1 italic">Insira o link completo do vídeo do YouTube que será exibido em loop como fundo da página inicial.</p>
                  </div>
               </div>
 
