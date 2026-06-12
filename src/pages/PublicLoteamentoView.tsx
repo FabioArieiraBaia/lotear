@@ -114,23 +114,45 @@ export default function PublicLoteamentoView() {
     if (loteamento.imageUrl.toLowerCase().endsWith('.pdf')) {
       const convertPdf = async () => {
         setConvertingPdf(true);
+        let active = true;
         try {
           const loadingTask = pdfjs.getDocument(resolveUrl(loteamento.imageUrl));
           const pdf = await loadingTask.promise;
+          if (!active) return;
           const page = await pdf.getPage(1);
-          const viewport = page.getViewport({ scale: 2.5 });
+          
+          const isMobile = window.innerWidth < 768;
+          const scale = isMobile ? 1.2 : 2.0;
+          const viewport = page.getViewport({ scale });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           if (context) {
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             await page.render({ canvasContext: context, viewport: viewport, canvas: canvas } as any).promise;
-            setMapImageUrl(canvas.toDataURL('image/png'));
+            if (active) setMapImageUrl(canvas.toDataURL('image/png'));
           }
         } catch (err) {
-          console.error("Error converting PDF to image:", err);
+          console.error("Error converting PDF to image in public view:", err);
+          // Fallback rendering
+          try {
+            const loadingTask = pdfjs.getDocument(resolveUrl(loteamento.imageUrl));
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 1.0 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (context) {
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+              await page.render({ canvasContext: context, viewport, canvas } as any).promise;
+              if (active) setMapImageUrl(canvas.toDataURL('image/png'));
+            }
+          } catch (fallbackErr) {
+            console.error("Fallback PDF render in public view failed:", fallbackErr);
+          }
         } finally {
-          setConvertingPdf(false);
+          if (active) setConvertingPdf(false);
         }
       };
       convertPdf();
@@ -221,62 +243,62 @@ export default function PublicLoteamentoView() {
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#050505] font-sans selection:bg-emerald-500/30">
       {/* HUD Header */}
-      <div className="absolute top-6 left-6 right-6 md:right-auto z-[1000] pointer-events-none flex items-center gap-4">
+      <div className="absolute top-4 left-4 right-4 md:top-6 md:left-6 md:right-auto z-[1000] pointer-events-none flex items-center gap-3 md:gap-4">
         <Link
           to="/"
-          className="pointer-events-auto flex items-center justify-center w-12 h-12 rounded-2xl bg-white/5 backdrop-blur-3xl border border-white/10 text-white hover:bg-emerald-500 hover:text-black transition-all hover:scale-105 shadow-2xl shrink-0"
+          className="pointer-events-auto flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-black/60 md:bg-white/5 backdrop-blur-3xl border border-white/10 text-white hover:bg-emerald-500 hover:text-black transition-all hover:scale-105 shadow-2xl shrink-0"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div className="pointer-events-auto px-6 py-3 rounded-2xl bg-white/5 backdrop-blur-3xl border border-white/10 text-white shadow-2xl flex items-center gap-4 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20">
-            <Navigation className="w-5 h-5 text-emerald-400" />
+        <div className="pointer-events-auto px-4 py-2 md:px-6 md:py-3 rounded-xl md:rounded-2xl bg-black/60 md:bg-white/5 backdrop-blur-3xl border border-white/10 text-white shadow-2xl flex items-center gap-3 md:gap-4 min-w-0 flex-1 md:flex-initial">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20 shrink-0">
+            <Navigation className="w-4 h-4 md:w-5 md:h-5 text-emerald-400" />
           </div>
-          <div>
-            <h1 className="font-bold tracking-tight text-lg leading-none mb-1 truncate">{loteamento.name}</h1>
-            <p className="text-[9px] text-neutral-500 uppercase font-black tracking-widest leading-none">Planta Georeferenciada</p>
+          <div className="min-w-0">
+            <h1 className="font-bold tracking-tight text-sm md:text-lg leading-none mb-1 truncate">{loteamento.name}</h1>
+            <p className="text-[8px] md:text-[9px] text-neutral-500 uppercase font-black tracking-widest leading-none">Planta Georeferenciada</p>
           </div>
         </div>
       </div>
 
       {/* Info HUD Side Panel */}
-      <div className="absolute inset-y-0 right-0 z-[1000] pointer-events-none flex flex-col justify-center items-end p-6 w-full md:w-[480px]">
+      <div className="absolute bottom-0 md:top-0 md:bottom-auto right-0 left-0 md:left-auto z-[1000] pointer-events-none flex flex-col justify-end md:justify-center items-end p-4 md:p-6 w-full md:w-[480px]">
         <AnimatePresence mode="wait">
           {displayLote ? (
             <motion.div
               key={displayLote.id}
-              initial={{ opacity: 0, x: 50, filter: 'blur(10px)' }}
-              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, x: 50, filter: 'blur(10px)' }}
-              className="pointer-events-auto bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-1 shadow-[0_0_80px_rgba(0,0,0,0.8)] text-white overflow-y-auto max-h-[85vh] w-full relative group sidebar-glow custom-scrollbar"
+              initial={{ opacity: 0, y: 50, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: 50, filter: 'blur(10px)' }}
+              className="pointer-events-auto bg-black/90 backdrop-blur-3xl border border-white/10 rounded-t-[2rem] md:rounded-[3rem] p-1 shadow-[0_0_80px_rgba(0,0,0,0.8)] text-white overflow-y-auto max-h-[50vh] md:max-h-[85vh] w-full relative group sidebar-glow custom-scrollbar"
             >
-              <div className="p-8 space-y-8 flex flex-col">
+              <div className="p-4 md:p-8 space-y-4 md:space-y-8 flex flex-col">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${getStatusGradient(displayLote.status)} border mb-4 shadow-lg`}>
+                    <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-gradient-to-r ${getStatusGradient(displayLote.status)} border mb-2 md:mb-4 shadow-lg`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${getStatusDot(displayLote.status)} animate-pulse`} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">{displayLote.status}</span>
+                      <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">{displayLote.status}</span>
                     </div>
-                    <h2 className="text-4xl font-bold tracking-tight font-heading leading-tight uppercase">{displayLote.name}</h2>
+                    <h2 className="text-xl md:text-4xl font-bold tracking-tight font-heading leading-tight uppercase">{displayLote.name}</h2>
                   </div>
                   {displayLote.area && (
                     <div className="text-right">
-                      <p className="text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-1">Área</p>
-                      <p className="text-2xl font-bold text-white font-heading">{displayLote.area} m²</p>
+                      <p className="text-[8px] md:text-[10px] text-neutral-500 uppercase font-black tracking-widest mb-1">Área</p>
+                      <p className="text-lg md:text-2xl font-bold text-white font-heading">{displayLote.area} m²</p>
                     </div>
                   )}
                 </div>
-                <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl flex flex-col">
+                <div className="relative aspect-[16/9] rounded-xl md:rounded-[2rem] overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl flex flex-col shrink-0">
                   {midias.length > 0 ? (
                     <div className="w-full h-full flex gap-2 overflow-x-auto p-2 custom-scrollbar scroll-smooth snap-x">
                       {midias.map((m, idx) => (
                         <div key={m.id} className="flex-shrink-0 w-full h-full snap-center relative group/img">
                           {m.type === 'image' ? (
-                            <img src={resolveUrl(m.url)} className="w-full h-full object-cover rounded-2xl" alt={`Slide ${idx}`} />
+                            <img src={resolveUrl(m.url)} className="w-full h-full object-cover rounded-xl md:rounded-2xl" alt={`Slide ${idx}`} />
                           ) : (
-                            <div className="w-full h-full bg-red-500/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer" onClick={() => window.open(m.url, '_blank')}>
-                              <MonitorPlay className="w-12 h-12 text-red-500 mb-2" />
-                              <span className="text-[10px] font-black text-red-500 uppercase">Assistir Tour Virtual</span>
+                            <div className="w-full h-full bg-red-500/10 rounded-xl md:rounded-2xl flex flex-col items-center justify-center cursor-pointer" onClick={() => window.open(m.url, '_blank')}>
+                              <MonitorPlay className="w-8 h-8 md:w-12 md:h-12 text-red-500 mb-1 md:mb-2" />
+                              <span className="text-[8px] md:text-[10px] font-black text-red-500 uppercase">Assistir Tour Virtual</span>
                             </div>
                           )}
                         </div>
@@ -287,8 +309,8 @@ export default function PublicLoteamentoView() {
                       <img src={resolveUrl(displayLote.photoUrl)} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full text-neutral-800">
-                        <ImageIcon className="w-12 h-12 mb-2" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Sem Registro Fotográfico</span>
+                        <ImageIcon className="w-8 h-8 md:w-12 md:h-12 mb-1 md:mb-2" />
+                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Sem Registro Fotográfico</span>
                       </div>
                     )
                   )}
@@ -296,35 +318,35 @@ export default function PublicLoteamentoView() {
                   <Link to={`/lote/${displayLote.id}`} className="absolute inset-0 z-20"></Link>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/5 p-5 rounded-[1.5rem] border border-white/5">
-                    <MapPin className="w-4 h-4 text-emerald-500 mb-3" />
-                    <p className="text-[9px] text-neutral-500 uppercase font-black mb-1">Localização</p>
-                    <p className="text-sm font-bold text-white leading-tight uppercase">{loteamento.name}</p>
+                <div className="grid grid-cols-2 gap-3 md:gap-4 shrink-0">
+                  <div className="bg-white/5 p-3 md:p-5 rounded-xl md:rounded-[1.5rem] border border-white/5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-500 mb-2" />
+                    <p className="text-[8px] md:text-[9px] text-neutral-500 uppercase font-black mb-1">Localização</p>
+                    <p className="text-xs md:text-sm font-bold text-white leading-tight uppercase truncate">{loteamento.name}</p>
                   </div>
-                  <div className="bg-white/5 p-5 rounded-[1.5rem] border border-white/5">
-                    <Maximize className="w-4 h-4 text-emerald-500 mb-3" />
-                    <p className="text-[9px] text-neutral-500 uppercase font-black mb-1">VGV Sugerido</p>
-                    <p className="text-sm font-bold text-emerald-400 leading-tight">Consulte-nos</p>
+                  <div className="bg-white/5 p-3 md:p-5 rounded-xl md:rounded-[1.5rem] border border-white/5">
+                    <Maximize className="w-3.5 h-3.5 text-emerald-500 mb-2" />
+                    <p className="text-[8px] md:text-[9px] text-neutral-500 uppercase font-black mb-1">VGV Sugerido</p>
+                    <p className="text-xs md:text-sm font-bold text-emerald-400 leading-tight">Consulte-nos</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4 shrink-0">
                   {displayLote.status === 'Disponível' ? (
                     <Link
                       to={`/lote/${displayLote.id}`}
-                      className="w-full py-5 bg-emerald-500 text-black font-black uppercase text-xs tracking-[0.3em] rounded-2xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
+                      className="w-full py-3.5 md:py-5 bg-emerald-500 text-black font-black uppercase text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.3em] rounded-xl md:rounded-2xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 md:gap-3"
                     >
-                      <Zap className="w-5 h-5 fill-black" /> Saber Mais & Fotos
+                      <Zap className="w-4 h-4 md:w-5 h-5 fill-black" /> Saber Mais & Fotos
                     </Link>
                   ) : (
-                    <div className="w-full py-5 bg-white/5 border border-white/10 text-neutral-600 font-black uppercase text-xs tracking-[0.3em] rounded-2xl text-center">
+                    <div className="w-full py-3.5 md:py-5 bg-white/5 border border-white/10 text-neutral-600 font-black uppercase text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.3em] rounded-xl md:rounded-2xl text-center">
                       Unidade Indisponível
                     </div>
                   )}
                   <button
                     onClick={() => setActiveLote(null)}
-                    className="w-full py-4 text-neutral-600 hover:text-white text-[9px] font-black uppercase tracking-widest transition-colors"
+                    className="w-full py-2 text-neutral-600 hover:text-white text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-colors"
                   >
                     Voltar à Navegação
                   </button>
@@ -336,7 +358,7 @@ export default function PublicLoteamentoView() {
               key="empty"
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
-              className="pointer-events-auto bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl text-center space-y-6 sidebar-glow"
+              className="hidden md:block pointer-events-auto bg-[#0a0a0a]/90 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl text-center space-y-6 sidebar-glow w-full"
             >
               <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
                 <MapPin className="w-10 h-10 text-emerald-500" />

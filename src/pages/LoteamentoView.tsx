@@ -222,12 +222,17 @@ export default function LoteamentoView() {
     if (loteamento.imageUrl.toLowerCase().endsWith('.pdf')) {
       const convertPdf = async () => {
         setConvertingPdf(true);
+        let active = true;
         try {
           const loadingTask = pdfjs.getDocument(resolveUrl(loteamento.imageUrl));
           const pdf = await loadingTask.promise;
+          if (!active) return;
           const page = await pdf.getPage(1);
-
-          const viewport = page.getViewport({ scale: 2.0 });
+          
+          // Use lower scale on mobile/slower devices to prevent memory limits
+          const isMobile = window.innerWidth < 768;
+          const scale = isMobile ? 1.2 : 2.0;
+          const viewport = page.getViewport({ scale });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
 
@@ -241,12 +246,29 @@ export default function LoteamentoView() {
               canvas: canvas
             } as any).promise;
 
-            setMapImageUrl(canvas.toDataURL('image/png'));
+            if (active) setMapImageUrl(canvas.toDataURL('image/png'));
           }
         } catch (err) {
           console.error("Error converting PDF to image:", err);
+          // Fallback to smaller scale if failed
+          try {
+            const loadingTask = pdfjs.getDocument(resolveUrl(loteamento.imageUrl));
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 1.0 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (context) {
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+              await page.render({ canvasContext: context, viewport, canvas } as any).promise;
+              if (active) setMapImageUrl(canvas.toDataURL('image/png'));
+            }
+          } catch (fallbackErr) {
+            console.error("Fallback PDF render failed:", fallbackErr);
+          }
         } finally {
-          setConvertingPdf(false);
+          if (active) setConvertingPdf(false);
         }
       };
       convertPdf();
